@@ -1,0 +1,12 @@
+dbs:
+  - path: ${LITESTREAM_DB_PATH}
+    replicas:
+      - type: s3
+        bucket: ${LITESTREAM_BUCKET}
+        path: ${LITESTREAM_PATH}
+        access-key-id: ${LITESTREAM_ACCESS_KEY_ID}
+        secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
+        region: ${LITESTREAM_REGION}
+        endpoint: ${LITESTREAM_ENDPOINT}
+        # Disable SSL for local MinIO
+        skip-verify: true

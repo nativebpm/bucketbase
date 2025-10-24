@@ -1,0 +1,77 @@
+services:
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - s3_data:/data
+    env_file:
+      - .env.minio
+    command: server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  pocketbase:
+    build: .
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/app/pb_data
+    env_file:
+      - .env.minio
+    environment:
+      - APP_MODE=s3
+      - APP_PROFILE=docker
+    command: ["serve", "--http=0.0.0.0:8090"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    depends_on:
+      minio:
+        condition: service_healthy
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  litestream:
+    image: litestream/litestream:latest
+    command: replicate -config /etc/litestream.minio.yml
+    volumes:
+      - pb_data:/app/pb-data
+      - ./litestream.minio.yml:/etc/litestream.minio.yml:ro
+    env_file:
+      - .env.minio
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    restart: unless-stopped
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+volumes:
+  pb_data:
+    external: true
+  s3_data:
+    external: true

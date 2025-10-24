@@ -1,0 +1,59 @@
+services:
+  pocketbase:
+    build: .
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/app/pb_data
+      - pb_backup:/app/pb-backups
+    env_file:
+      - .env
+    environment:
+      - APP_MODE=fs
+      - APP_PROFILE=docker
+    command: ["serve", "--http=0.0.0.0:8090"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+
+  litestream:
+    image: litestream/litestream:latest
+    command: replicate -config /etc/litestream.yml
+    volumes:
+      - pb_data:/app/pb-data
+      - pb_backup:/app/pb-backups
+      - ./litestream.yml:/etc/litestream.yml:ro
+    env_file:
+      - .env
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    restart: unless-stopped
+    # Production resource limits
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+volumes:
+  pb_data:
+    external: true
+  pb_backup:
+    external: true

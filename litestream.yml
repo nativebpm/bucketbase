@@ -1,0 +1,5 @@
+dbs:
+  - path: ${LITESTREAM_DB_PATH}
+    replicas:
+      - type: file
+        path: ${LITESTREAM_BACKUP_PATH}
