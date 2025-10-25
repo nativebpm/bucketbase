@@ -14,10 +14,8 @@ make up-fs
 make up-minio
 ```
 
-PocketBase: http://localhost:8090  
-MinIO Console: http://localhost:9001 (minioadmin/minioadmin)
-
-**Default admin credentials:** admin@example.com / admin123 (created automatically)
+- **PocketBase:** http://localhost:8090/_/#/login (admin@example.com / admin123)
+- **MinIO Console:** http://localhost:9001 (minioadmin / minioadmin)
 
 ## Setup
 
