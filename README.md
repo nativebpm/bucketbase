@@ -20,7 +20,7 @@ make up-minio
 ## Setup
 
 1. **Filesystem storage**: `make setup-fs` - creates pb_data and pb_backup volumes
-2. **MinIO storage**: `make setup-minio` - creates pb_data and minio_data volumes
+2. **MinIO storage**: `make setup-minio` - creates pb_data and s3_data volumes
 
 ## Environment
 
