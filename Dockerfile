@@ -2,7 +2,7 @@
 FROM golang:1.24-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache git ca-certificates tzdata build-base
+RUN apk add --no-cache git ca-certificates build-base
 
 # Set working directory
 WORKDIR /app
@@ -20,7 +20,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o pocketbase ./cmd/
 FROM alpine:latest
 
 # Install runtime dependencies
-RUN apk --no-cache add ca-certificates tzdata sqlite curl
+RUN apk --no-cache add ca-certificates curl
 
 # Create app user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup -u 1000
