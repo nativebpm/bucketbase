@@ -52,7 +52,7 @@ services:
     image: litestream/litestream:latest
     command: replicate -config /etc/litestream.minio.yml
     volumes:
-      - pb_data:/app/pb-data
+      - pb_data:/app/pb_data
       - ./litestream.minio.yml:/etc/litestream.minio.yml:ro
     env_file:
       - .env.minio

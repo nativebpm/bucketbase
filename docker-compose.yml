@@ -5,7 +5,7 @@ services:
       - "8090:8090"
     volumes:
       - pb_data:/app/pb_data
-      - pb_backup:/app/pb-backups
+      - pb_backup:/app/pb_backup
     env_file:
       - .env
     environment:
@@ -33,8 +33,8 @@ services:
     image: litestream/litestream:latest
     command: replicate -config /etc/litestream.yml
     volumes:
-      - pb_data:/app/pb-data
-      - pb_backup:/app/pb-backups
+      - pb_data:/app/pb_data
+      - pb_backup:/app/pb_backup
       - ./litestream.yml:/etc/litestream.yml:ro
     env_file:
       - .env

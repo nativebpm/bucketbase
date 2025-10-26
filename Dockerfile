@@ -32,7 +32,7 @@ WORKDIR /app
 COPY --from=builder /app/pocketbase .
 
 # Create directories
-RUN mkdir -p pb-data pb-backups
+RUN mkdir -p pb_backup
 
 # Change ownership
 RUN chown -R appuser:appgroup /app

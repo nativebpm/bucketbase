@@ -1,6 +1,6 @@
 DISK=$$HOME/disks
-DATA=$(DISK)/fs/pb-data
-BACKUP=$(DISK)/fs/pb-backups
+DATA=$(DISK)/fs/pb_data
+BACKUP=$(DISK)/fs/pb_backup
 STORAGE_DATA=$(DISK)/s3/
 
 # Setup for filesystem-based storage (local file replication)
