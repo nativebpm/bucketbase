@@ -29,6 +29,10 @@ make up-minio
 
 Generate encryption key: `openssl rand -hex 32`
 
+## Sync Interval Costs
+
+https://litestream.io/reference/config/#sync-interval-costs
+
 ## Features
 
 - ✅ Metadata storage in SQLite database
