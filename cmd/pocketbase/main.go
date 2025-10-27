@@ -49,6 +49,7 @@ func appProfile(profile string, app *pocketbase.PocketBase) {
 		}
 
 		app.OnServe().BindFunc(func(e *core.ServeEvent) error {
+			// Create or update superuser (shell command: pocketbase superuser upsert <email> <password>)
 			cmd := exec.Command(os.Args[0], "superuser", "upsert", email, password)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr

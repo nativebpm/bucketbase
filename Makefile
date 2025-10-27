@@ -45,9 +45,15 @@ setup-minio: setup-common setup-storage
 setup-rustfs: setup-common setup-storage
 	@echo "RustFS setup complete. Use 'docker compose -f docker-compose.rustfs.yml up' for high-performance S3-compatible storage."
 
-# Setup for AWS S3-based storage (cloud replication)
-setup-aws: setup-common
-	@echo "AWS S3 setup complete. Use 'docker compose -f docker-compose.aws.yml up' for cloud storage."
+# Setup for Garage-based storage (distributed S3-compatible replication)
+setup-garage: setup-common setup-storage
+	mkdir -p $(STORAGE_DATA)/garage/data
+	mkdir -p $(STORAGE_DATA)/garage/meta
+	sudo chown -R 1000:1000 $(STORAGE_DATA)/garage/data
+	sudo chown -R 1000:1000 $(STORAGE_DATA)/garage/meta
+	@docker volume inspect garage-data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(STORAGE_DATA)/garage/data garage-data
+	@docker volume inspect garage-meta >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(STORAGE_DATA)/garage/meta garage-meta
+	@echo "Garage setup complete. Use 'docker compose -f docker-compose.garage.yml up' for distributed S3-compatible storage."
 
 # Clean filesystem setup
 clean-fs: clean-common clean-backup
@@ -61,34 +67,38 @@ clean-minio: clean-common clean-storage
 clean-rustfs: clean-common clean-storage
 	@echo "RustFS cleanup complete."
 
-# Clean AWS setup
-clean-aws: clean-common
-	@echo "AWS S3 cleanup complete."
+# Clean Garage setup
+clean-garage: clean-common clean-storage
+	docker volume rm garage-data >/dev/null 2>&1 || true
+	docker volume rm garage-meta >/dev/null 2>&1 || true
+	sudo rm -rf $(STORAGE_DATA)/garage/data
+	sudo rm -rf $(STORAGE_DATA)/garage/meta
+	@echo "Garage cleanup complete."
 
 up-fs: setup-fs
-	docker compose --env-file .env up --build
+	docker compose --env-file .env up --build -d
 
 down-fs: 
 	docker compose down -v
 	make clean-fs
 
 up-minio: setup-minio
-	docker compose --env-file .env.minio -f docker-compose.minio.yml up --build
+	docker compose --env-file .env.minio -f docker-compose.minio.yml up --build -d
 
 down-minio:
 	docker compose -f docker-compose.minio.yml down -v
 	make clean-minio
 
 up-rustfs: setup-rustfs
-	docker compose --env-file .env.rustfs -f docker-compose.rustfs.yml up --build
+	docker compose --env-file .env.rustfs -f docker-compose.rustfs.yml up --build -d
 
 down-rustfs:
 	docker compose -f docker-compose.rustfs.yml down -v
 	make clean-rustfs
 
-up-aws: setup-aws
-	docker compose --env-file .env.aws -f docker-compose.aws.yml up --build
+up-garage: setup-garage
+	docker compose --env-file .env.garage -f docker-compose.garage.yml up --build -d
 
-down-aws:
-	docker compose -f docker-compose.aws.yml down -v
-	make clean-aws
+down-garage:
+	docker compose -f docker-compose.garage.yml down -v
+	make clean-garage
