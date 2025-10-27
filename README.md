@@ -1,7 +1,7 @@
 ## Admin UI + REST API for any S3 Storage
 
-### PocketBase File Storage with S3 Backup
-[github.com/nativebpm/pocketbase](https://github.com/nativebpm/pocketbase)
+### BucketBase - File Storage with S3 Backup
+[github.com/nativebpm/bucketbase](https://github.com/nativebpm/bucketbase)
 
 A production-ready file storage solution where metadata is stored in SQLite, the API is provided by PocketBase, and files are stored in S3-compatible storage or the local filesystem, with automatic backups handled by Litestream.
 
