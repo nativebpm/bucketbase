@@ -4,20 +4,6 @@
 
 A production-ready file storage solution where metadata is stored in SQLite, API is provided by PocketBase, and files are stored in S3-compatible storage or local filesystem with automatic backups via Litestream.
 
-## Features
-
-- ✅ Metadata storage in SQLite database
-- ✅ RESTful API provided by PocketBase
-- ✅ File storage in multiple backends (Filesystem, MinIO, RustFS, Garage, AWS S3)
-- ✅ SQLite database with Litestream replication
-- ✅ Automatic backups to S3-compatible storage
-- ✅ Automatic S3 bucket creation on startup
-- ✅ Docker Compose with health checks
-- ✅ External volumes for persistence
-- ✅ Automatic superuser creation
-- ✅ Production resource limits
-- ✅ Multiple storage backend support
-
 ## Storage Backends
 
 | Backend    | Type           |
@@ -28,12 +14,6 @@ A production-ready file storage solution where metadata is stored in SQLite, API
 | Garage     | Distributed S3 |
 | SeaweedFS  | Distributed S3 |
 | AWS S3     | Cloud          |
-
-## Sync Interval Costs
-
-Configuration follows the official Litestream documentation: https://litestream.io/reference/config/#sync-interval-costs
-
-The setup has been verified for compliance with Litestream's S3 guide: https://litestream.io/guides/s3/
 
 ## Setup
 
@@ -70,16 +50,6 @@ make up-aws
 - **SeaweedFS Console:** http://localhost:9333 (credentials in `.env.seaweedfs`)
 - **Garage Admin API:** http://localhost:3903 (token in `garage.toml`)
 
-### Garage Management
-
-- **List buckets:**
-  ```bash
-  docker exec -it pocketbase-garage-1 garage bucket list
-  ```
-- **Get help:**
-  ```bash
-  docker exec -it pocketbase-garage-1 garage --help
-  ```
 ## Clean
 
 ```bash
