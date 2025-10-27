@@ -7,8 +7,10 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
 )
@@ -61,58 +63,76 @@ func appProfile(profile string, app *pocketbase.PocketBase) {
 func appMode(mode string, app *pocketbase.PocketBase) {
 	if mode == "s3" {
 
-		minioURL, err := url.Parse(os.Getenv("MINIO_ENDPOINT"))
+		s3URL, err := url.Parse(os.Getenv("S3_ENDPOINT"))
 		if err != nil {
 			log.Fatalln(err)
 		}
 
-		makeBucket(minioURL)
+		makeBucket(s3URL)
 
-		if minioURL.Scheme == "" {
-			minioURL.Scheme = "http"
+		if s3URL.Scheme == "" {
+			s3URL.Scheme = "http"
 		}
 
 		app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {
 			settings := app.Settings()
 			settings.S3.Enabled = true
-			settings.S3.Bucket = os.Getenv("MINIO_BUCKET")
-			settings.S3.Region = os.Getenv("MINIO_REGION")
-			settings.S3.Endpoint = minioURL.String()
-			settings.S3.AccessKey = os.Getenv("MINIO_ACCESS_KEY")
-			settings.S3.Secret = os.Getenv("MINIO_SECRET_KEY")
+			settings.S3.Bucket = os.Getenv("S3_BUCKET")
+			settings.S3.Region = os.Getenv("S3_REGION")
+			settings.S3.Endpoint = s3URL.String()
+			settings.S3.AccessKey = os.Getenv("S3_ACCESS_KEY")
+			settings.S3.Secret = os.Getenv("S3_SECRET_KEY")
 			settings.S3.ForcePathStyle = true
 			return e.Next()
 		})
 	}
 }
 
-func makeBucket(minioURL *url.URL) {
-	accessKeyID := os.Getenv("MINIO_ACCESS_KEY")
-	secretAccessKey := os.Getenv("MINIO_SECRET_KEY")
-	useSSL := os.Getenv("MINIO_USE_SSL") == "true"
+func makeBucket(s3URL *url.URL) {
+	accessKeyID := os.Getenv("S3_ACCESS_KEY")
+	secretAccessKey := os.Getenv("S3_SECRET_KEY")
+	useSSL := os.Getenv("S3_USE_SSL") == "true"
+	region := os.Getenv("S3_REGION")
+	if region == "" {
+		region = "us-east-1"
+	}
+
+	if useSSL {
+		s3URL.Scheme = "https"
+	} else if s3URL.Scheme == "" {
+		s3URL.Scheme = "http"
+	}
 
 	buckets := []string{
-		os.Getenv("MINIO_BUCKET"),
+		os.Getenv("S3_BUCKET"),
 		os.Getenv("LITESTREAM_BUCKET"),
 	}
 
 	ctx := context.Background()
 
-	// Initialize minio client object.
-	minioClient, err := minio.New(minioURL.Host, &minio.Options{
-		Creds:  credentials.NewStaticV4(accessKeyID, secretAccessKey, ""),
-		Secure: useSSL,
-	})
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, "")),
+		config.WithRegion(region),
+	)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
+	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(s3URL.String())
+		o.UsePathStyle = true
+	})
+
 	for _, bucketName := range buckets {
-		err = minioClient.MakeBucket(ctx, bucketName, minio.MakeBucketOptions{})
+		_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{
+			Bucket: &bucketName,
+		})
 		if err != nil {
 			// Check to see if we already own this bucket (which happens if you run this twice)
-			exists, errBucketExists := minioClient.BucketExists(ctx, bucketName)
-			if errBucketExists == nil && exists {
+			_, errHead := client.HeadBucket(ctx, &s3.HeadBucketInput{
+				Bucket: &bucketName,
+			})
+			if errHead == nil {
 				log.Printf("We already own %s\n", bucketName)
 			} else {
 				log.Fatalln(err)

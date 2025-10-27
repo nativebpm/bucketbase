@@ -1,17 +1,18 @@
 services:
-  minio:
-    image: minio/minio:latest
+  rustfs:
+    image: rustfs/rustfs:latest
     ports:
       - "9000:9000"
       - "9001:9001"
     volumes:
       - s3_data:/data
     environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
+      - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
+      - RUSTFS_SECRET_KEY=${RUSTFS_SECRET_KEY}
+      - RUSTFS_CONSOLE_ENABLE=${RUSTFS_CONSOLE_ENABLE}
+    command: /data
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-f", "http://localhost:9000"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -45,7 +46,7 @@ services:
       start_period: 40s
     restart: unless-stopped
     depends_on:
-      minio:
+      rustfs:
         condition: service_healthy
     # Production resource limits
     deploy:
@@ -59,10 +60,10 @@ services:
 
   litestream:
     image: litestream/litestream:latest
-    command: replicate -config /etc/litestream.minio.yml
+    command: replicate -config /etc/litestream.s3.yml
     volumes:
       - pb_data:/app/pb_data
-      - ./litestream.s3.yml:/etc/litestream.minio.yml:ro
+      - ./litestream.s3.yml:/etc/litestream.s3.yml:ro
     environment:
       - LITESTREAM_BUCKET=${LITESTREAM_BUCKET}
       - LITESTREAM_REGION=${LITESTREAM_REGION}

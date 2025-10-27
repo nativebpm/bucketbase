@@ -1,22 +1,4 @@
 services:
-  minio:
-    image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    volumes:
-      - s3_data:/data
-    environment:
-      - MINIO_ROOT_USER=${MINIO_ROOT_USER}
-      - MINIO_ROOT_PASSWORD=${MINIO_ROOT_PASSWORD}
-    command: server /data --console-address ":9001"
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-    restart: unless-stopped
-
   pocketbase:
     build: .
     ports:
@@ -29,6 +11,9 @@ services:
       - POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_ENCRYPTION_KEY}
       - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL}
       - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION}
       - S3_BUCKET=${S3_BUCKET}
       - S3_REGION=${S3_REGION}
       - S3_ENDPOINT=${S3_ENDPOINT}
@@ -44,9 +29,6 @@ services:
       retries: 3
       start_period: 40s
     restart: unless-stopped
-    depends_on:
-      minio:
-        condition: service_healthy
     # Production resource limits
     deploy:
       resources:
@@ -59,10 +41,10 @@ services:
 
   litestream:
     image: litestream/litestream:latest
-    command: replicate -config /etc/litestream.minio.yml
+    command: replicate -config /etc/litestream.s3.yml
     volumes:
       - pb_data:/app/pb_data
-      - ./litestream.s3.yml:/etc/litestream.minio.yml:ro
+      - ./litestream.s3.yml:/etc/litestream.s3.yml:ro
     environment:
       - LITESTREAM_BUCKET=${LITESTREAM_BUCKET}
       - LITESTREAM_REGION=${LITESTREAM_REGION}
@@ -88,6 +70,4 @@ services:
 
 volumes:
   pb_data:
-    external: true
-  s3_data:
     external: true

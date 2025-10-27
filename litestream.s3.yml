@@ -8,5 +8,4 @@ dbs:
         secret-access-key: ${LITESTREAM_SECRET_ACCESS_KEY}
         region: ${LITESTREAM_REGION}
         endpoint: ${LITESTREAM_ENDPOINT}
-        # Disable SSL for local MinIO
-        skip-verify: true
+        skip-verify: ${LITESTREAM_SKIP_VERIFY}

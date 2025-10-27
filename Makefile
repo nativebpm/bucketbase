@@ -3,50 +3,92 @@ DATA=$(DISK)/fs/pb_data
 BACKUP=$(DISK)/fs/pb_backup
 STORAGE_DATA=$(DISK)/s3/
 
-# Setup for filesystem-based storage (local file replication)
-setup-fs:
-	@echo "Setting up filesystem-based storage..."
+# Common setup tasks
+setup-common:
 	@test -d $(DISK) || mkdir -p $(DISK)
-	mkdir -p $(DATA) $(BACKUP)
-	sudo chown -R 1000:1000 $(DATA) $(BACKUP)
+	mkdir -p $(DATA)
+	sudo chown -R 1000:1000 $(DATA)
 	@docker volume inspect pb_data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(DATA) pb_data
+
+setup-backup:
+	mkdir -p $(BACKUP)
+	sudo chown -R 1000:1000 $(BACKUP)
 	@docker volume inspect pb_backup >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(BACKUP) pb_backup
+
+setup-storage:
+	mkdir -p $(STORAGE_DATA)
+	sudo chown -R 1000:1000 $(STORAGE_DATA)
+	@docker volume inspect s3_data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(STORAGE_DATA) s3_data
+
+# Common cleanup tasks
+clean-common:
+	docker volume rm pb_data >/dev/null 2>&1 || true
+	sudo rm -rf $(DATA)
+
+clean-backup:
+	docker volume rm pb_backup >/dev/null 2>&1 || true
+	sudo rm -rf $(BACKUP)
+
+clean-storage:
+	docker volume rm s3_data >/dev/null 2>&1 || true
+	sudo rm -rf $(STORAGE_DATA)
+
+# Setup for filesystem-based storage (local file replication)
+setup-fs: setup-common setup-backup
 	@echo "Filesystem setup complete. Use 'docker compose up' for local file replication."
 
 # Setup for MinIO-based storage (S3-compatible replication)
-setup-minio:
-	@echo "Setting up MinIO-based storage..."
-	@test -d $(DISK) || mkdir -p $(DISK)
-	mkdir -p $(DATA) $(STORAGE_DATA)
-	sudo chown -R 1000:1000 $(DATA) $(STORAGE_DATA)
-	@docker volume inspect pb_data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(DATA) pb_data
-	@docker volume inspect s3_data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(STORAGE_DATA) s3_data
+setup-minio: setup-common setup-storage
 	@echo "MinIO setup complete. Use 'docker compose -f docker-compose.minio.yml up' for S3-compatible storage."
 
+# Setup for RustFS-based storage (high-performance S3-compatible replication)
+setup-rustfs: setup-common setup-storage
+	@echo "RustFS setup complete. Use 'docker compose -f docker-compose.rustfs.yml up' for high-performance S3-compatible storage."
+
+# Setup for AWS S3-based storage (cloud replication)
+setup-aws: setup-common
+	@echo "AWS S3 setup complete. Use 'docker compose -f docker-compose.aws.yml up' for cloud storage."
+
 # Clean filesystem setup
-clean-fs:
-	@echo "Cleaning filesystem-based storage..."
-	docker volume rm pb_data pb_backup >/dev/null 2>&1 || true
-	sudo rm -rf $(DATA) $(BACKUP)
+clean-fs: clean-common clean-backup
 	@echo "Filesystem cleanup complete."
 
 # Clean MinIO setup
-clean-minio:
-	@echo "Cleaning MinIO-based storage..."
-	docker volume rm pb_data s3_data >/dev/null 2>&1 || true
-	sudo rm -rf $(DATA) $(STORAGE_DATA)
+clean-minio: clean-common clean-storage
 	@echo "MinIO cleanup complete."
 
+# Clean RustFS setup
+clean-rustfs: clean-common clean-storage
+	@echo "RustFS cleanup complete."
+
+# Clean AWS setup
+clean-aws: clean-common
+	@echo "AWS S3 cleanup complete."
+
 up-fs: setup-fs
-	docker compose up --build
+	docker compose --env-file .env up --build
 
 down-fs: 
 	docker compose down -v
 	make clean-fs
 
 up-minio: setup-minio
-	docker compose -f docker-compose.minio.yml up --build
+	docker compose --env-file .env.minio -f docker-compose.minio.yml up --build
 
 down-minio:
 	docker compose -f docker-compose.minio.yml down -v
 	make clean-minio
+
+up-rustfs: setup-rustfs
+	docker compose --env-file .env.rustfs -f docker-compose.rustfs.yml up --build
+
+down-rustfs:
+	docker compose -f docker-compose.rustfs.yml down -v
+	make clean-rustfs
+
+up-aws: setup-aws
+	docker compose --env-file .env.aws -f docker-compose.aws.yml up --build
+
+down-aws:
+	docker compose -f docker-compose.aws.yml down -v
+	make clean-aws

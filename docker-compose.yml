@@ -6,11 +6,12 @@ services:
     volumes:
       - pb_data:/app/pb_data
       - pb_backup:/app/pb_backup
-    env_file:
-      - .env
     environment:
       - APP_MODE=fs
       - APP_PROFILE=docker
+      - POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_ENCRYPTION_KEY}
+      - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL}
+      - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
     command: ["serve", "--http=0.0.0.0:8090"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8090/api/health"]
@@ -36,8 +37,9 @@ services:
       - pb_data:/app/pb_data
       - pb_backup:/app/pb_backup
       - ./litestream.yml:/etc/litestream.yml:ro
-    env_file:
-      - .env
+    environment:
+      - LITESTREAM_DB_PATH=${LITESTREAM_DB_PATH}
+      - LITESTREAM_BACKUP_PATH=${LITESTREAM_BACKUP_PATH}
     depends_on:
       pocketbase:
         condition: service_healthy
