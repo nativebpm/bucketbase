@@ -1,4 +1,4 @@
-module github.com/nativebpm/bucketbase
+module github.com/nativebpm/pocketstream
 
 go 1.24.0
 
