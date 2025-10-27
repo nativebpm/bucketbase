@@ -4,50 +4,21 @@
 
 A production-ready file storage solution where metadata is stored in SQLite, API is provided by PocketBase, and files are stored in S3-compatible storage or local filesystem with automatic backups via Litestream.
 
-## Quick Start
+## Features
 
-### Development (Filesystem)
-```bash
-make up-fs
-```
-
-### Production Options
-
-#### MinIO (Local S3-compatible)
-```bash
-make up-minio
-```
-
-#### RustFS (High-performance S3-compatible)
-```bash
-make up-rustfs
-```
-
-#### SeaweedFS (S3-compatible)
-```bash
-make up-seaweedfs
-```
-
-#### AWS S3 (Cloud storage)
-```bash
-make up-aws
-```
-
-- **PocketBase:** http://localhost:8090/_/#/login (admin@example.com / admin123)
-- **MinIO Console:** http://localhost:9001 (credentials in `.env.minio`)
-- **RustFS Console:** http://localhost:9001 (credentials in `.env.rustfs`)
-- **Garage Console:** http://localhost:3900 (S3 API endpoint)
+- ✅ Metadata storage in SQLite database
+- ✅ RESTful API provided by PocketBase
+- ✅ File storage in multiple backends (Filesystem, MinIO, RustFS, Garage, AWS S3)
+- ✅ SQLite database with Litestream replication
+- ✅ Automatic backups to S3-compatible storage
+- ✅ Automatic S3 bucket creation on startup
+- ✅ Docker Compose with health checks
+- ✅ External volumes for persistence
+- ✅ Automatic superuser creation
+- ✅ Production resource limits
+- ✅ Multiple storage backend support
 
 ## Setup
-
-1. **Filesystem storage**: `make setup-fs` - creates pb_data and pb_backup volumes
-2. **MinIO storage**: `make setup-minio` - creates pb_data and s3_data volumes
-3. **RustFS storage**: `make setup-rustfs` - creates pb_data and s3_data volumes
-4. **Garage storage**: `make setup-garage` - creates pb_data, garage_data and garage_meta volumes
-5. **SeaweedFS storage**: `make setup-seaweedfs` - creates pb_data and seaweedfs-data volumes
-6. **AWS S3 storage**: `make setup-aws` - creates pb_data volume only
-
-## Development vs Production
 
 ### Development
 Use the filesystem backend for local development:
@@ -67,7 +38,12 @@ Choose based on your requirements:
 - **SeaweedFS**: Fast and scalable distributed file system with S3 API, good for high-performance workloads
 - **AWS S3**: Cloud storage with high availability and scalability
 
-## Environment Files
+### Links
+
+- **PocketBase:** http://localhost:8090/_/#/login (admin@example.com / admin123)
+- **MinIO Console:** http://localhost:9001 (credentials in `.env.minio`)
+- **RustFS Console:** http://localhost:9001 (credentials in `.env.rustfs`)
+- **Garage Console:** http://localhost:3900 (S3 API endpoint)
 
 ### Environment Files
 
@@ -117,30 +93,8 @@ make up-rustfs
 - **Environment variables not set**: The Makefile automatically loads the appropriate `.env` file. If you run docker-compose directly, use `--env-file .env.<backend>` flag
 - **Litestream path issues**: Ensure `LITESTREAM_PATH` does not start with `/` to avoid double slashes in S3 object keys (e.g., use `app/pb_data/data.db` instead of `/app/pb_data/data.db`)
 
-### Health Checks
-
-All services include health checks. Monitor container status with:
-```bash
-docker ps
-docker logs <container-name>
-```
-
 ## Sync Interval Costs
 
 Configuration follows the official Litestream documentation: https://litestream.io/reference/config/#sync-interval-costs
 
 The setup has been verified for compliance with Litestream's S3 guide: https://litestream.io/guides/s3/
-
-## Features
-
-- ✅ Metadata storage in SQLite database
-- ✅ RESTful API provided by PocketBase
-- ✅ File storage in multiple backends (Filesystem, MinIO, RustFS, Garage, AWS S3)
-- ✅ SQLite database with Litestream replication
-- ✅ Automatic backups to S3-compatible storage
-- ✅ Automatic S3 bucket creation on startup
-- ✅ Docker Compose with health checks
-- ✅ External volumes for persistence
-- ✅ Automatic superuser creation
-- ✅ Production resource limits
-- ✅ Multiple storage backend support
