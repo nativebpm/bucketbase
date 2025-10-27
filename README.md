@@ -63,6 +63,12 @@ make up-aws
 | SeaweedFS  | Distributed S3 |
 | AWS S3     | Cloud          |
 
+## Clean
+
+```bash
+make down-<backend>
+```
+
 ## Sync Interval Costs
 
 Configuration follows the official Litestream documentation: https://litestream.io/reference/config/#sync-interval-costs
