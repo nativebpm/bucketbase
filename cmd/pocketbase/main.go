@@ -69,9 +69,13 @@ func appMode(mode string, app *pocketbase.PocketBase) {
 			log.Fatalln(err)
 		}
 
+		useSSL := os.Getenv("S3_USE_SSL") == "true"
+
 		makeBucket(s3URL)
 
-		if s3URL.Scheme == "" {
+		if useSSL {
+			s3URL.Scheme = "https"
+		} else {
 			s3URL.Scheme = "http"
 		}
 
@@ -92,16 +96,9 @@ func appMode(mode string, app *pocketbase.PocketBase) {
 func makeBucket(s3URL *url.URL) {
 	accessKeyID := os.Getenv("S3_ACCESS_KEY")
 	secretAccessKey := os.Getenv("S3_SECRET_KEY")
-	useSSL := os.Getenv("S3_USE_SSL") == "true"
 	region := os.Getenv("S3_REGION")
 	if region == "" {
 		region = "us-east-1"
-	}
-
-	if useSSL {
-		s3URL.Scheme = "https"
-	} else if s3URL.Scheme == "" {
-		s3URL.Scheme = "http"
 	}
 
 	buckets := []string{
