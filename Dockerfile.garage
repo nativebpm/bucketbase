@@ -18,6 +18,10 @@ COPY --from=builder /app/garage /garage
 
 COPY garage.toml /etc/garage.toml
 
+# Add health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=5 \
+  CMD /usr/local/bin/garage status || exit 1
+
 WORKDIR /var/lib/garage
 
 ENTRYPOINT ["/garage"]

@@ -97,7 +97,7 @@ func main() {
 		fmt.Println("Importing key...")
 		accessKey := os.Getenv("GARAGE_ACCESS_KEY")
 		secretKey := os.Getenv("GARAGE_SECRET_KEY")
-		fmt.Println("Access key:", accessKey, "Secret key length:", len(secretKey))
+		fmt.Println("Access key length:", len(accessKey), "Secret key length:", len(secretKey))
 
 		// Check if key already exists
 		fmt.Println("Checking garage key list...")
@@ -116,7 +116,6 @@ func main() {
 			}
 			panic(err)
 		}
-		fmt.Println("Key list output:", string(output))
 		keyExists := false
 		lines := strings.Split(string(output), "\n")
 		for _, line := range lines {

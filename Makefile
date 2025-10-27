@@ -67,6 +67,13 @@ clean-minio: clean-common clean-storage
 clean-rustfs: clean-common clean-storage
 	@echo "RustFS cleanup complete."
 
+# Setup for SeaweedFS-based storage (S3-compatible replication)
+setup-seaweedfs: setup-common setup-storage
+	mkdir -p $(STORAGE_DATA)/seaweedfs
+	sudo chown -R 1000:1000 $(STORAGE_DATA)/seaweedfs
+	@docker volume inspect seaweedfs-data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(STORAGE_DATA)/seaweedfs seaweedfs-data
+	@echo "SeaweedFS setup complete. Use 'docker compose -f docker-compose.seaweedfs.yml up' for S3-compatible storage."
+
 # Clean Garage setup
 clean-garage: clean-common clean-storage
 	docker volume rm garage-data >/dev/null 2>&1 || true
@@ -74,6 +81,13 @@ clean-garage: clean-common clean-storage
 	sudo rm -rf $(STORAGE_DATA)/garage/data
 	sudo rm -rf $(STORAGE_DATA)/garage/meta
 	@echo "Garage cleanup complete."
+
+up-seaweedfs: setup-seaweedfs
+	docker compose --env-file .env.seaweedfs -f docker-compose.seaweedfs.yml up --build -d
+
+down-seaweedfs:
+	docker compose -f docker-compose.seaweedfs.yml down -v
+	make clean-seaweedfs
 
 up-fs: setup-fs
 	docker compose --env-file .env up --build -d

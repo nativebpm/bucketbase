@@ -1,29 +1,15 @@
 services:
-  garage:
+  seaweedfs:
     build:
       context: .
-      dockerfile: Dockerfile.garage
+      dockerfile: Dockerfile.seaweedfs
     ports:
-      - "3900:3900"
-      - "3901:3901"
-      - "3902:3902"
-      - "3903:3903"
+      - "${SEAWEEDFS_MASTER_PORT:-9333}:9333"  # master
+      - "${SEAWEEDFS_VOLUME_PORT:-8080}:8080"  # volume
+      - "${SEAWEEDFS_S3_PORT:-8333}:8333"      # s3
     volumes:
-      - garage-data:/var/lib/garage/data
-      - garage-meta:/var/lib/garage/meta
-      - ./garage.toml:/etc/garage.toml:ro
-    environment:
-      - GARAGE_ACCESS_KEY=${GARAGE_ACCESS_KEY}
-      - GARAGE_SECRET_KEY=${GARAGE_SECRET_KEY}
-      - GARAGE_ZONE=${GARAGE_ZONE}
-      - GARAGE_CAPACITY=${GARAGE_CAPACITY}
-      - GARAGE_LAYOUT_VERSION=${GARAGE_LAYOUT_VERSION}
-      - GARAGE_KEY_IMPORT_YES=${GARAGE_KEY_IMPORT_YES}
-      - GARAGE_BUCKET_ALLOW_READ=${GARAGE_BUCKET_ALLOW_READ}
-      - GARAGE_BUCKET_ALLOW_WRITE=${GARAGE_BUCKET_ALLOW_WRITE}
-      - GARAGE_BUCKET_ALLOW_OWNER=${GARAGE_BUCKET_ALLOW_OWNER}
-      - S3_BUCKET=${S3_BUCKET}
-      - LITESTREAM_BUCKET=${LITESTREAM_BUCKET}
+      - seaweedfs-data:/data
+    command: ["server", "-dir=/data", "-s3"]
     restart: unless-stopped
 
   pocketbase:
@@ -54,7 +40,7 @@ services:
       start_period: 40s
     restart: unless-stopped
     depends_on:
-      garage:
+      seaweedfs:
         condition: service_healthy
     deploy:
       resources:
@@ -84,7 +70,6 @@ services:
       pocketbase:
         condition: service_healthy
     restart: unless-stopped
-    # Production resource limits
     deploy:
       resources:
         limits:
@@ -97,7 +82,5 @@ services:
 volumes:
   pb_data:
     external: true
-  garage-data:
-    external: true
-  garage-meta:
+  seaweedfs-data:
     external: true

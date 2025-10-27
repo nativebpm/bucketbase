@@ -21,9 +21,9 @@ make up-minio
 make up-rustfs
 ```
 
-#### Garage (Distributed S3-compatible)
+#### SeaweedFS (S3-compatible)
 ```bash
-make up-garage
+make up-seaweedfs
 ```
 
 #### AWS S3 (Cloud storage)
@@ -42,7 +42,8 @@ make up-aws
 2. **MinIO storage**: `make setup-minio` - creates pb_data and s3_data volumes
 3. **RustFS storage**: `make setup-rustfs` - creates pb_data and s3_data volumes
 4. **Garage storage**: `make setup-garage` - creates pb_data, garage_data and garage_meta volumes
-5. **AWS S3 storage**: `make setup-aws` - creates pb_data volume only
+5. **SeaweedFS storage**: `make setup-seaweedfs` - creates pb_data and seaweedfs-data volumes
+6. **AWS S3 storage**: `make setup-aws` - creates pb_data volume only
 
 ## Development vs Production
 
@@ -61,6 +62,7 @@ Choose based on your requirements:
 - **MinIO**: Self-hosted S3-compatible storage, good for on-premises deployments
 - **RustFS**: High-performance alternative to MinIO, better for high-throughput workloads
 - **Garage**: Distributed S3-compatible storage with built-in replication, ideal for multi-node clusters
+- **SeaweedFS**: Fast and scalable distributed file system with S3 API, good for high-performance workloads
 - **AWS S3**: Cloud storage with high availability and scalability
 
 ## Environment Files
@@ -71,6 +73,7 @@ Choose based on your requirements:
 - `.env.minio` - MinIO S3 storage
 - `.env.rustfs` - RustFS S3 storage
 - `.env.garage` - Garage S3 storage
+- `.env.seaweedfs` - SeaweedFS S3 storage
 - `.env.aws` - AWS S3 storage
 
 Generate encryption key: `openssl rand -hex 32`
@@ -83,6 +86,7 @@ Generate encryption key: `openssl rand -hex 32`
 | MinIO | Local S3 | `make setup-minio` | `docker-compose.minio.yml` | `.env.minio` |
 | RustFS | Local S3 | `make setup-rustfs` | `docker-compose.rustfs.yml` | `.env.rustfs` |
 | Garage | Distributed S3 | `make setup-garage` | `docker-compose.garage.yml` | `.env.garage` |
+| SeaweedFS | Distributed S3 | `make setup-seaweedfs` | `docker-compose.seaweedfs.yml` | `.env.seaweedfs` |
 | AWS S3 | Cloud | `make setup-aws` | `docker-compose.aws.yml` | `.env.aws` |
 
 ## Switching Between Backends
