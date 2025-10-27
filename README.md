@@ -1,9 +1,11 @@
-## Admin UI + REST API for any S3 storage
+## Admin UI + REST API for any S3 Storage
 
-### PocketBase File Storage with S3 Backup 
+### PocketBase File Storage with S3 Backup
 [github.com/nativebpm/pocketbase](https://github.com/nativebpm/pocketbase)
 
-A production-ready file storage solution where metadata is stored in SQLite, API is provided by PocketBase, and files are stored in S3-compatible storage or local filesystem with automatic backups via Litestream.
+A production-ready file storage solution where metadata is stored in SQLite, the API is provided by PocketBase, and files are stored in S3-compatible storage or the local filesystem, with automatic backups handled by Litestream.
+
+This is a proven and practical technology stack: Docker + SQLite + Litestream + PocketBase (Go, Admin UI, REST API) + any S3-compatible backend (Amazon S3 SDK).
 
 ## Storage Backends
 
@@ -17,33 +19,45 @@ A production-ready file storage solution where metadata is stored in SQLite, API
 | rclone     | Local S3       |
 | AWS S3     | Cloud          |
 
+## Sync Interval Costs
+
+The configuration follows the official Litestream documentation.
+- [litestream.io/reference/config/#sync-interval-costs](https://litestream.io/reference/config/#sync-interval-costs)
+- [litestream.io/guides/s3/](https://litestream.io/guides/s3/)
+
 ## Setup
 
 - **Filesystem**: Fast local file operations, no external dependencies, automatic local backups
 ```bash
 make up-fs
 ```
-- **MinIO**: Self-hosted S3-compatible storage, good for on-premises deployments
+
+- **MinIO**: Self-hosted S3-compatible storage, suitable for on-premises deployments
 ```bash
 make up-minio
 ```
-- **RustFS**: High-performance alternative to MinIO, better for high-throughput workloads
+
+- **RustFS**: High-performance alternative to MinIO, optimized for high-throughput workloads
 ```bash
 make up-rustfs
 ```
+
 - **Garage**: Distributed S3-compatible storage with built-in replication, ideal for multi-node clusters
 ```bash
 make up-garage
 ```
-- **SeaweedFS**: Fast and scalable distributed file system with S3 API, good for high-performance workloads
+
+- **SeaweedFS**: Fast and scalable distributed file system with an S3 API, suited for high-performance workloads
 ```bash
 make up-seaweedfs
 ```
-- **rclone**: Flexible S3-compatible storage using rclone serve s3, supports various backends
+
+- **rclone**: Flexible S3-compatible layer using `rclone serve s3`, supports various storage backends
 ```bash
 make up-rclone
 ```
-- **AWS S3**: Cloud storage with high availability and scalability
+
+- **AWS S3**: Cloud-based storage offering high availability and scalability
 ```bash
 make up-aws
 ```
@@ -61,3 +75,7 @@ make up-aws
 ```bash
 make down-<backend>
 ```
+
+## Production Notes
+
+I tested the stack extensively in real deployment scenarios, including integration with MinIO as the S3-compatible backend. It has proven stable and reliable under load, with smooth recovery and backup using Litestream. PocketBase provides a solid REST API and admin UI out of the box, while SQLite and Docker make setup and deployment simple and consistent. With MinIO ensuring durability and backup, the stack has demonstrated production-grade reliability and minimal maintenance requirements.
