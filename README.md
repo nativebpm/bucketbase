@@ -67,7 +67,8 @@ make up-aws
 - **PocketBase:** http://localhost:8090/_/#/login (admin@example.com / admin123)
 - **MinIO Console:** http://localhost:9001 (credentials in `.env.minio`)
 - **RustFS Console:** http://localhost:9001 (credentials in `.env.rustfs`)
-- **Garage S3 API:** http://localhost:3900 (credentials in `.env.garage` , `garage.toml`)
+- **SeaweedFS Console:** http://localhost:9333 (credentials in `.env.seaweedfs`)
+- **Garage Admin API:** http://localhost:3903 (token in `garage.toml`)
 
 ### Garage Management
 
@@ -79,7 +80,6 @@ make up-aws
   ```bash
   docker exec -it pocketbase-garage-1 garage --help
   ```
-
 ## Clean
 
 ```bash
