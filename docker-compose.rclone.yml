@@ -1,0 +1,88 @@
+services:
+  rclone:
+    image: rclone/rclone:latest
+    command: serve s3 --addr 0.0.0.0:8334 /data --auth-key ${S3_ACCESS_KEY},${S3_SECRET_KEY}
+    ports:
+      - "8334:8334"
+    volumes:
+      - rclone-data:/data
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8334"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  pocketbase:
+    build: .
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/app/pb_data
+    environment:
+      - APP_MODE=s3
+      - APP_PROFILE=docker
+      - POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_ENCRYPTION_KEY}
+      - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL}
+      - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
+      - S3_BUCKET=${S3_BUCKET}
+      - S3_REGION=${S3_REGION}
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_USE_SSL=${S3_USE_SSL}
+      - LITESTREAM_BUCKET=${LITESTREAM_BUCKET}
+    command: ["serve", "--http=0.0.0.0:8090"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    depends_on:
+      rclone:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
+
+  litestream:
+    image: litestream/litestream:latest
+    command: replicate -config /etc/litestream.s3.yml
+    volumes:
+      - pb_data:/app/pb_data
+      - ./litestream.s3.yml:/etc/litestream.s3.yml:ro
+    environment:
+      - LITESTREAM_BUCKET=${LITESTREAM_BUCKET}
+      - LITESTREAM_REGION=${LITESTREAM_REGION}
+      - LITESTREAM_ENDPOINT=${LITESTREAM_ENDPOINT}
+      - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID}
+      - LITESTREAM_SECRET_ACCESS_KEY=${LITESTREAM_SECRET_ACCESS_KEY}
+      - LITESTREAM_PATH=${LITESTREAM_PATH}
+      - LITESTREAM_DB_PATH=${LITESTREAM_DB_PATH}
+      - LITESTREAM_SKIP_VERIFY=${LITESTREAM_SKIP_VERIFY}
+    depends_on:
+      pocketbase:
+        condition: service_healthy
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.2'
+        reservations:
+          memory: 64M
+          cpus: '0.1'
+
+volumes:
+  pb_data:
+    external: true
+  rclone-data:
+    external: true

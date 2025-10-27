@@ -74,6 +74,13 @@ setup-seaweedfs: setup-common setup-storage
 	@docker volume inspect seaweedfs-data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(STORAGE_DATA)/seaweedfs seaweedfs-data
 	@echo "SeaweedFS setup complete. Use 'docker compose -f docker-compose.seaweedfs.yml up' for S3-compatible storage."
 
+# Setup for rclone-based storage (S3-compatible replication)
+setup-rclone: setup-common setup-storage
+	mkdir -p $(STORAGE_DATA)/rclone
+	sudo chown -R 1000:1000 $(STORAGE_DATA)/rclone
+	@docker volume inspect rclone-data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(STORAGE_DATA)/rclone rclone-data
+	@echo "rclone setup complete. Use 'docker compose -f docker-compose.rclone.yml up' for S3-compatible storage."
+
 # Clean Garage setup
 clean-garage: clean-common clean-storage
 	docker volume rm garage-data >/dev/null 2>&1 || true
@@ -81,6 +88,18 @@ clean-garage: clean-common clean-storage
 	sudo rm -rf $(STORAGE_DATA)/garage/data
 	sudo rm -rf $(STORAGE_DATA)/garage/meta
 	@echo "Garage cleanup complete."
+
+# Clean SeaweedFS setup
+clean-seaweedfs: clean-common clean-storage
+	docker volume rm seaweedfs-data >/dev/null 2>&1 || true
+	sudo rm -rf $(STORAGE_DATA)/seaweedfs
+	@echo "SeaweedFS cleanup complete."
+
+# Clean rclone setup
+clean-rclone: clean-common clean-storage
+	docker volume rm rclone-data >/dev/null 2>&1 || true
+	sudo rm -rf $(STORAGE_DATA)/rclone
+	@echo "rclone cleanup complete."
 
 up-seaweedfs: setup-seaweedfs
 	docker compose --env-file .env.seaweedfs -f docker-compose.seaweedfs.yml up --build -d
@@ -116,3 +135,10 @@ up-garage: setup-garage
 down-garage:
 	docker compose -f docker-compose.garage.yml down -v
 	make clean-garage
+
+up-rclone: setup-rclone
+	docker compose --env-file .env.rclone -f docker-compose.rclone.yml up --build -d
+
+down-rclone:
+	docker compose -f docker-compose.rclone.yml down -v
+	make clean-rclone

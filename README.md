@@ -14,6 +14,7 @@ A production-ready file storage solution where metadata is stored in SQLite, API
 | RustFS     | Local S3       |
 | Garage     | Distributed S3 |
 | SeaweedFS  | Distributed S3 |
+| rclone     | Local S3       |
 | AWS S3     | Cloud          |
 
 ## Setup
@@ -37,6 +38,10 @@ make up-garage
 - **SeaweedFS**: Fast and scalable distributed file system with S3 API, good for high-performance workloads
 ```bash
 make up-seaweedfs
+```
+- **rclone**: Flexible S3-compatible storage using rclone serve s3, supports various backends
+```bash
+make up-rclone
 ```
 - **AWS S3**: Cloud storage with high availability and scalability
 ```bash
