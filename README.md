@@ -18,6 +18,23 @@ A production-ready file storage solution where metadata is stored in SQLite, API
 - ✅ Production resource limits
 - ✅ Multiple storage backend support
 
+## Storage Backends
+
+| Backend    | Type           |
+|------------|----------------|
+| Filesystem | Local          |
+| MinIO      | Local S3       |
+| RustFS     | Local S3       |
+| Garage     | Distributed S3 |
+| SeaweedFS  | Distributed S3 |
+| AWS S3     | Cloud          |
+
+## Sync Interval Costs
+
+Configuration follows the official Litestream documentation: https://litestream.io/reference/config/#sync-interval-costs
+
+The setup has been verified for compliance with Litestream's S3 guide: https://litestream.io/guides/s3/
+
 ## Setup
 
 - **Filesystem**: Fast local file operations, no external dependencies, automatic local backups
@@ -50,27 +67,21 @@ make up-aws
 - **PocketBase:** http://localhost:8090/_/#/login (admin@example.com / admin123)
 - **MinIO Console:** http://localhost:9001 (credentials in `.env.minio`)
 - **RustFS Console:** http://localhost:9001 (credentials in `.env.rustfs`)
-- **Garage Console:** http://localhost:3900 (S3 API endpoint)
+- **Garage S3 API:** http://localhost:3900 (credentials in `.env.garage` , `garage.toml`)
 
-## Storage Backends
+### Garage Management
 
-| Backend    | Type           |
-|------------|----------------|
-| Filesystem | Local          |
-| MinIO      | Local S3       |
-| RustFS     | Local S3       |
-| Garage     | Distributed S3 |
-| SeaweedFS  | Distributed S3 |
-| AWS S3     | Cloud          |
+- **List buckets:**
+  ```bash
+  docker exec -it pocketbase-garage-1 garage bucket list
+  ```
+- **Get help:**
+  ```bash
+  docker exec -it pocketbase-garage-1 garage --help
+  ```
 
 ## Clean
 
 ```bash
 make down-<backend>
 ```
-
-## Sync Interval Costs
-
-Configuration follows the official Litestream documentation: https://litestream.io/reference/config/#sync-interval-costs
-
-The setup has been verified for compliance with Litestream's S3 guide: https://litestream.io/guides/s3/
