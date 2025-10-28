@@ -1,9 +1,7 @@
 FROM chrislusf/seaweedfs:latest
 
-# Add curl for health checks
 RUN apk add --no-cache curl
 
-# Add health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:8333/ || exit 1
 

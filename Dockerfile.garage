@@ -6,7 +6,7 @@ WORKDIR /app
 
 COPY cmd/garage/main.go .
 
-RUN go build -o garage main.go
+RUN go build -o main main.go
 
 FROM alpine:latest
 
@@ -14,14 +14,15 @@ RUN apk add --no-cache ca-certificates
 
 COPY --from=garage-bin /garage /usr/local/bin/garage
 
-COPY --from=builder /app/garage /garage
+COPY --from=builder /app/main /main
 
 COPY garage.toml /etc/garage.toml
 
-# Add health check
+WORKDIR /var/lib/garage
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=5 \
   CMD /usr/local/bin/garage status || exit 1
 
-WORKDIR /var/lib/garage
+EXPOSE 3900 3901 3902 3903
 
-ENTRYPOINT ["/garage"]
+ENTRYPOINT ["/main"]

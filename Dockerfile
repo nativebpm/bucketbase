@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine AS builder
+FROM golang:1.24-alpine AS pocketstream-builder
 
 RUN apk add --no-cache git ca-certificates build-base
 
@@ -8,24 +8,35 @@ COPY . .
 
 RUN go mod tidy
 
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o pocketbase ./cmd/pocketbase
+RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/pocketstream
 
-FROM alpine:latest
+FROM golang:1.24-alpine AS litestream-builder
 
-RUN apk --no-cache add ca-certificates curl
-
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup -u 1000
+RUN apk add --no-cache git
 
 WORKDIR /app
 
-COPY --from=builder /app/pocketbase .
+RUN git clone https://github.com/nativebpm/litestream.git . && \
+    git checkout v0.5.2 && \
+    go build -o /app/litestream ./cmd/litestream
 
-RUN mkdir -p pb_backup
+FROM alpine:latest
 
-RUN chown -R appuser:appgroup /app
+RUN apk --no-cache add ca-certificates curl sqlite
+
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup -u 1000
+
+COPY --from=pocketstream-builder /app/main .
+COPY --from=litestream-builder /app/litestream .
+
+RUN mkdir -p pb_backup && chown -R appuser:appgroup /main /litestream /pb_backup
 
 USER appuser
 
+HEALTHCHECK --interval=10s --timeout=10s --start-period=40s --retries=9 \
+    CMD curl -f http://localhost:8090/api/health || exit 1
+
 EXPOSE 8090
 
-ENTRYPOINT ["/app/pocketbase"]
+ENTRYPOINT ["/main"]
+CMD ["serve", "--http", "0.0.0.0:8090"]
