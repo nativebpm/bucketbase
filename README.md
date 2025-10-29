@@ -32,7 +32,7 @@ The configuration follows the official Litestream documentation.
 make up-fs
 ```
 
-- **MinIO**: Self-hosted S3-compatible storage, suitable for on-premises deployments
+- **MinIO**: Self-hosted S3-compatible storage, suitable for on-premises deployments. Uses MinIO installed from source, latest release with CVE fixes (https://github.com/minio/minio/releases)
 ```bash
 make up-minio
 ```
