@@ -12,17 +12,16 @@ GARAGE_META=$(DISK)/garage/meta
 SEAWEEDFS_DATA=$(DISK)/seaweedfs/
 RCLONE_DATA=$(DISK)/rclone/
 
-# Common setup tasks
+# Pocketbase setup tasks
 setup-pocketbase:
-	@test -d $(DISK) || mkdir -p $(DISK)
-	mkdir -p $(DISK)/pb_data
-	sudo chown -R 1000:1000 $(DISK)/pb_data
-	@docker volume inspect pb_data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(DISK)/pb_data pb_data
+	mkdir -p $(FS_DATA)
+	sudo chown -R 1000:1000 $(FS_DATA)
+	@docker volume inspect pb_data >/dev/null 2>&1 || docker volume create --driver local --opt type=none --opt o=bind --opt device=$(FS_DATA) pb_data
 
-# Common cleanup tasks
+# Pocketbase cleanup tasks
 clean-pocketbase:
 	docker volume rm pb_data >/dev/null 2>&1 || true
-	sudo rm -rf $(DISK)/pb_data
+	sudo rm -rf $(FS_DATA)
 
 # Setup for filesystem-based storage (local file replication)
 setup-fs: setup-pocketbase
