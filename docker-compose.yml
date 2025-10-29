@@ -45,5 +45,7 @@ services:
           cpus: '0.25'
 
 volumes:
+  pb_data:
+    external: true
   pb_backup:
     external: true
