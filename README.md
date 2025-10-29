@@ -1,11 +1,17 @@
-## Admin UI + REST API for any S3 Storage
+# PocketStream - Admin UI + REST API for any S3 Storage
+[github.com/nativebpm/pocketstream](https://github.com/nativebpm/pocketstream)
 
-### PocketStream - File Storage with S3 Backup
-[github.com/nativebpm/PocketStream](https://github.com/nativebpm/PocketStream)
+File storage with SQLite metadata, PocketBase API, S3/local storage, and instant replication backups via Litestream.
 
-A production-ready file storage solution where metadata is stored in SQLite, the API is provided by PocketBase, and files are stored in S3-compatible storage or the local filesystem, with automatic backups handled by Litestream.
+## Key Features
 
-This is a proven and practical technology stack: Docker + SQLite + Litestream + PocketBase (Go, Admin UI, REST API) + any S3-compatible backend (Amazon S3 SDK).
+- Simple technology stack: Docker + SQLite + Litestream + PocketBase + S3 backends
+- Shell-script-free, Go binaries for better security and portability
+- Simple deployment with Docker and Makefile
+- Automatic backups with Litestream for seamless recovery
+- Automatic database recovery with Litestream restore
+- Built-in REST API and Admin UI via PocketBase
+- High reliability with minimal maintenance requirements
 
 ## Storage Backends
 
@@ -19,11 +25,20 @@ This is a proven and practical technology stack: Docker + SQLite + Litestream + 
 | rclone     | Local S3       |
 | AWS S3     | Cloud          |
 
-## Sync Interval Costs
 
-The configuration follows the official Litestream documentation.
-- [litestream.io/reference/config/#sync-interval-costs](https://litestream.io/reference/config/#sync-interval-costs)
-- [litestream.io/guides/s3/](https://litestream.io/guides/s3/)
+## Useful Links
+
+- [PocketBase Production Guide](https://pocketbase.io/docs/going-to-production/)
+- [Litestream Docker Guide](https://litestream.io/guides/docker/#running-in-the-same-container)
+- [Litestream Sync Interval Costs](https://litestream.io/reference/config/#sync-interval-costs)
+- [Litestream Configuration Reference](https://litestream.io/reference/config/)
+- [Litestream Restore Reference](https://litestream.io/reference/restore/)
+
+## Requirements
+
+- Docker
+- Make
+- Go 1.24+ (for building from source)
 
 ## Setup
 
@@ -76,6 +91,6 @@ make up-aws
 make down-<backend>
 ```
 
-## Production Notes
+## License
 
-I tested the stack extensively in real deployment scenarios, including integration with MinIO as the S3-compatible backend. It has proven stable and reliable under load, with smooth recovery and backup using Litestream. PocketBase provides a solid REST API and admin UI out of the box, while SQLite and Docker make setup and deployment simple and consistent. With MinIO ensuring durability and backup, the stack has demonstrated production-grade reliability and minimal maintenance requirements.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

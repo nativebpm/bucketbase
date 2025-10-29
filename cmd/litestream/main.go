@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/exec"
 	"syscall"
 
 	"gopkg.in/yaml.v3"
@@ -207,6 +208,20 @@ func init() {
 }
 
 func main() {
+	dbPath := os.Getenv("LITESTREAM_DB_PATH")
+	if dbPath != "" {
+		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+			slog.Info("Database does not exist, restoring from replica", "path", dbPath)
+			cmd := exec.Command("/litestream", "restore", "-config", configPath, "-if-replica-exists", dbPath)
+			cmd.Env = os.Environ()
+			if err := cmd.Run(); err != nil {
+				slog.Error("Failed to restore database", "error", err)
+				os.Exit(1)
+			}
+			slog.Info("Database restored successfully", "path", dbPath)
+		}
+	}
+
 	err := syscall.Exec("/litestream", []string{"/litestream", "replicate", "-config", configPath, "-exec", "/pocketbase serve --http :8090"}, os.Environ())
 	if err != nil {
 		slog.Error("Failed to exec litestream", "error", err)
