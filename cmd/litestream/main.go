@@ -1,11 +1,15 @@
-package litestream
+package main
 
 import (
 	"fmt"
+	"log/slog"
 	"os"
+	"syscall"
 
 	"gopkg.in/yaml.v3"
 )
+
+const configPath = "/tmp/litestream.yml"
 
 type LitestreamYml struct {
 	AccessKeyID     string           `yaml:"access-key-id,omitempty"`
@@ -149,17 +153,42 @@ func CreateLitestreamConfig(replicaType string) ([]byte, error) {
 	return data, nil
 }
 
-func getLitestreamConfigPath(appMode string) string {
-	if appMode == "s3" {
-		return "/tmp/litestream_s3.yml"
-	} else {
-		return "/tmp/litestream_file.yml"
-	}
-}
-
 func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
 	return defaultValue
+}
+
+func CreateLitestreamConfigFile(configData []byte) error {
+	if err := os.WriteFile(configPath, configData, 0644); err != nil {
+		return fmt.Errorf("failed to create litestream config: %w", err)
+	}
+	return nil
+}
+
+func init() {
+	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		replicaType := os.Getenv("LITESTREAM_REPLICA_TYPE")
+		if replicaType == "" {
+			replicaType = "file"
+		}
+		configData, err := CreateLitestreamConfig(replicaType)
+		if err != nil {
+			slog.Error("Failed to create litestream config", "error", err)
+			os.Exit(1)
+		}
+		if err := CreateLitestreamConfigFile(configData); err != nil {
+			slog.Error("Failed to write litestream config", "error", err)
+			os.Exit(1)
+		}
+	}
+}
+
+func main() {
+	err := syscall.Exec("/litestream", []string{"/litestream", "replicate", "-config", configPath, "-exec", "/pocketbase serve --http 0.0.0.0:8090"}, os.Environ())
+	if err != nil {
+		slog.Error("Failed to exec litestream", "error", err)
+		os.Exit(1)
+	}
 }
