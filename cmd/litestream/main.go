@@ -17,7 +17,18 @@ type LitestreamYml struct {
 	Addr            string           `yaml:"addr,omitempty"`
 	MCPAddr         string           `yaml:"mcp-addr,omitempty"`
 	Logging         LoggingConfig    `yaml:"logging,omitempty"`
+	Levels          []LevelConfig    `yaml:"levels,omitempty"`
+	Snapshot        SnapshotConfig   `yaml:"snapshot,omitempty"`
 	Dbs             []DatabaseConfig `yaml:"dbs"`
+}
+
+type LevelConfig struct {
+	Interval string `yaml:"interval"`
+}
+
+type SnapshotConfig struct {
+	Interval  string `yaml:"interval,omitempty"`
+	Retention string `yaml:"retention,omitempty"`
 }
 
 type DatabaseConfig struct {
@@ -137,10 +148,20 @@ func CreateLitestreamConfig(replicaType string) ([]byte, error) {
 	}
 
 	config := LitestreamYml{
+		Levels: []LevelConfig{
+			{Interval: "5m"},
+			{Interval: "1h"},
+			{Interval: "24h"},
+		},
+		Snapshot: SnapshotConfig{
+			Interval:  getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "6h"),
+			Retention: getEnvOrDefault("LITESTREAM_RETENTION", "168h"),
+		},
 		Dbs: []DatabaseConfig{
 			{
-				Path:    os.Getenv("LITESTREAM_DB_PATH"),
-				Replica: replica,
+				Path:     os.Getenv("LITESTREAM_DB_PATH"),
+				MetaPath: os.Getenv("LITESTREAM_BACKUP_PATH"),
+				Replica:  replica,
 			},
 		},
 	}
