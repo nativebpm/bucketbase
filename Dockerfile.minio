@@ -1,0 +1,17 @@
+FROM golang:1.24-alpine AS minio-builder
+
+RUN CGO_ENABLED=0 go install github.com/minio/minio@latest
+
+FROM alpine:latest
+
+RUN apk add --no-cache ca-certificates curl
+
+COPY --from=minio-builder /go/bin/minio /usr/local/bin/minio
+
+RUN chmod +x /usr/local/bin/minio
+
+USER 1000:1000
+
+HEALTHCHECK --interval=10s --timeout=10s --start-period=5s --retries=9 CMD curl -f http://localhost:9000/minio/health/live || exit 1
+
+ENTRYPOINT ["/usr/local/bin/minio"]

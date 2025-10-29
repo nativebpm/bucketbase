@@ -14,13 +14,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o pocketbase ./cmd/
 
 FROM golang:1.24-alpine AS litestream-builder
 
-RUN apk add --no-cache git
-
-WORKDIR /app
-
-RUN git clone https://github.com/nativebpm/litestream.git . && \
-    git checkout v0.5.2 && \
-    go build -o /app/litestream ./cmd/litestream
+RUN go install github.com/benbjohnson/litestream/cmd/litestream@latest
 
 FROM alpine:latest
 
@@ -30,7 +24,7 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup -u 1000
 
 COPY --from=builder /app/main .
 COPY --from=builder /app/pocketbase .
-COPY --from=litestream-builder /app/litestream .
+COPY --from=litestream-builder /go/bin/litestream .
 
 RUN mkdir -p pb_backup && chown -R appuser:appgroup /main /pocketbase /litestream /pb_backup
 
