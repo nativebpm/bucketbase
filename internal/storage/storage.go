@@ -2,7 +2,7 @@ package storage
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"net/url"
 	"os"
 
@@ -12,35 +12,72 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
-func MakeBucket(s3URL *url.URL) {
-	accessKeyID := os.Getenv("S3_ACCESS_KEY")
-	secretAccessKey := os.Getenv("S3_SECRET_KEY")
+type S3Config struct {
+	Enabled         bool
+	UseSSL          bool
+	Bucket          string
+	Region          string
+	AccessKeyID     string
+	SecretAccessKey string
+	Buckets         []string
+	Endpoint        *url.URL
+}
+
+func GetS3Config() S3Config {
+	s3Endpoint, err := url.Parse(os.Getenv("S3_ENDPOINT"))
+	if err != nil {
+		slog.Error("Failed to parse S3 endpoint", "error", err)
+		os.Exit(1)
+	}
+
+	useSSL := os.Getenv("S3_USE_SSL") == "true"
+
+	if useSSL {
+		s3Endpoint.Scheme = "https"
+	} else {
+		s3Endpoint.Scheme = "http"
+	}
+
 	region := os.Getenv("S3_REGION")
 	if region == "" {
 		region = "us-east-1"
 	}
 
-	buckets := []string{
-		os.Getenv("S3_BUCKET"),
-		os.Getenv("LITESTREAM_BUCKET"),
+	return S3Config{
+		Enabled:         os.Getenv("S3_ENABLED") == "true",
+		UseSSL:          useSSL,
+		Bucket:          os.Getenv("S3_BUCKET"),
+		Region:          region,
+		AccessKeyID:     os.Getenv("S3_ACCESS_KEY"),
+		SecretAccessKey: os.Getenv("S3_SECRET_KEY"),
+		Buckets: []string{
+			os.Getenv("S3_BUCKET"),
+			os.Getenv("LITESTREAM_BUCKET"),
+		},
+		Endpoint: s3Endpoint,
 	}
+}
+
+func MakeBucket() {
+	cfg := GetS3Config()
 
 	ctx := context.Background()
 
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyID, secretAccessKey, "")),
-		config.WithRegion(region),
+	awsCfg, err := config.LoadDefaultConfig(ctx,
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(cfg.AccessKeyID, cfg.SecretAccessKey, "")),
+		config.WithRegion(cfg.Region),
 	)
 	if err != nil {
-		log.Fatalln(err)
+		slog.Error("Failed to load AWS config", "error", err)
+		os.Exit(1)
 	}
 
-	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
-		o.BaseEndpoint = aws.String(s3URL.String())
+	client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		o.BaseEndpoint = aws.String(cfg.Endpoint.String())
 		o.UsePathStyle = true
 	})
 
-	for _, bucketName := range buckets {
+	for _, bucketName := range cfg.Buckets {
 		_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{
 			Bucket: &bucketName,
 		})
@@ -49,12 +86,13 @@ func MakeBucket(s3URL *url.URL) {
 				Bucket: &bucketName,
 			})
 			if errHead == nil {
-				log.Printf("We already own %s\n", bucketName)
+				slog.Info("Bucket already exists", "bucket", bucketName)
 			} else {
-				log.Fatalln(err)
+				slog.Error("Failed to create bucket", "bucket", bucketName, "error", err)
+				os.Exit(1)
 			}
 		} else {
-			log.Printf("Successfully created %s\n", bucketName)
+			slog.Info("Bucket created successfully", "bucket", bucketName)
 		}
 	}
 

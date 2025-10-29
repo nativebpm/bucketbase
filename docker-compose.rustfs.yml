@@ -1,5 +1,7 @@
-# Use with docker-compose.common.yml
-# docker compose -f docker-compose.common.yml -f docker-compose.rustfs.yml up
+# make setup-rustfs
+# docker compose --env-file .env.rustfs -f docker-compose.rustfs.yml up --build -d
+
+name: pocketstream-rustfs
 
 services:
   rustfs:
@@ -8,7 +10,7 @@ services:
       - "9000:9000"
       - "9001:9001"
     volumes:
-      - s3_data:/data
+      - rustfs-data:/data
     environment:
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
       - RUSTFS_CONSOLE_ENABLE=${RUSTFS_CONSOLE_ENABLE}
@@ -22,6 +24,9 @@ services:
     restart: unless-stopped
 
   pocketstream:
+    build: .
+    ports:
+      - "8090:8090"
     volumes:
       - pb_data:/pb_data
     environment:
@@ -31,6 +36,7 @@ services:
       - LITESTREAM_COMPRESS=${LITESTREAM_COMPRESS}
       - LITESTREAM_DB_PATH=${LITESTREAM_DB_PATH}
       - LITESTREAM_ENDPOINT=${LITESTREAM_ENDPOINT}
+      - LITESTREAM_MAX_LAG_SECONDS=${LITESTREAM_MAX_LAG_SECONDS}
       - LITESTREAM_MAX_WAL_BYTES=${LITESTREAM_MAX_WAL_BYTES}
       - LITESTREAM_REGION=${LITESTREAM_REGION}
       - LITESTREAM_REPLICA_TYPE=${LITESTREAM_REPLICA_TYPE}
@@ -39,6 +45,10 @@ services:
       - LITESTREAM_SKIP_VERIFY=${LITESTREAM_SKIP_VERIFY}
       - LITESTREAM_SNAPSHOT_INTERVAL=${LITESTREAM_SNAPSHOT_INTERVAL}
       - LITESTREAM_SYNC_INTERVAL=${LITESTREAM_SYNC_INTERVAL}
+      - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL}
+      - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
+      - POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_ENCRYPTION_KEY}
+      - PROFILE=docker
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_BUCKET=${S3_BUCKET}
       - S3_ENABLED=${S3_ENABLED}
@@ -46,6 +56,15 @@ services:
       - S3_REGION=${S3_REGION}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_USE_SSL=${S3_USE_SSL}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
     depends_on:
       rustfs:
         condition: service_healthy
@@ -53,5 +72,5 @@ services:
 volumes:
   pb_data:
     external: true
-  s3_data:
+  rustfs-data:
     external: true

@@ -1,8 +1,15 @@
-# Use with docker-compose.common.yml
-# docker compose -f docker-compose.common.yml -f docker-compose.aws.yml up
+# make setup-aws (if exists) or direct
+# docker compose --env-file .env.aws -f docker-compose.aws.yml up --build -d
+
+name: pocketstream-aws
 
 services:
   pocketstream:
+    build: .
+    ports:
+      - "8090:8090"
+    volumes:
+      - pb_data:/pb_data
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_REGION=${AWS_REGION}
@@ -13,6 +20,7 @@ services:
       - LITESTREAM_COMPRESS=${LITESTREAM_COMPRESS}
       - LITESTREAM_DB_PATH=${LITESTREAM_DB_PATH}
       - LITESTREAM_ENDPOINT=${LITESTREAM_ENDPOINT}
+      - LITESTREAM_MAX_LAG_SECONDS=${LITESTREAM_MAX_LAG_SECONDS}
       - LITESTREAM_MAX_WAL_BYTES=${LITESTREAM_MAX_WAL_BYTES}
       - LITESTREAM_REGION=${LITESTREAM_REGION}
       - LITESTREAM_REPLICA_TYPE=${LITESTREAM_REPLICA_TYPE}
@@ -21,6 +29,10 @@ services:
       - LITESTREAM_SKIP_VERIFY=${LITESTREAM_SKIP_VERIFY}
       - LITESTREAM_SNAPSHOT_INTERVAL=${LITESTREAM_SNAPSHOT_INTERVAL}
       - LITESTREAM_SYNC_INTERVAL=${LITESTREAM_SYNC_INTERVAL}
+      - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL}
+      - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
+      - POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_ENCRYPTION_KEY}
+      - PROFILE=docker
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_BUCKET=${S3_BUCKET}
       - S3_ENABLED=${S3_ENABLED}
@@ -28,6 +40,15 @@ services:
       - S3_REGION=${S3_REGION}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_USE_SSL=${S3_USE_SSL}
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+          cpus: '0.25'
 
 volumes:
   pb_data:
