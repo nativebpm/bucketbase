@@ -207,7 +207,7 @@ func init() {
 }
 
 func main() {
-	err := syscall.Exec("/litestream", []string{"/litestream", "replicate", "-config", configPath, "-exec", "/pocketbase serve --http 0.0.0.0:8090"}, os.Environ())
+	err := syscall.Exec("/litestream", []string{"/litestream", "replicate", "-config", configPath, "-exec", "/pocketbase serve --http :8090"}, os.Environ())
 	if err != nil {
 		slog.Error("Failed to exec litestream", "error", err)
 		os.Exit(1)

@@ -9,8 +9,9 @@ services:
     ports:
       - "9000:9000"
       - "9001:9001"
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     volumes:
-      - rustfs-data:/data
+      - $HOME/disks/rustfs:/data
     environment:
       - RUSTFS_ACCESS_KEY=${RUSTFS_ACCESS_KEY}
       - RUSTFS_CONSOLE_ENABLE=${RUSTFS_CONSOLE_ENABLE}
@@ -27,16 +28,17 @@ services:
     build: .
     ports:
       - "8090:8090"
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     volumes:
-      - pb_data:/pb_data
+      - $HOME/disks/fs/pb_data:/pb_data
     environment:
+      - GOMEMLIMIT=${GOMEMLIMIT}
       - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID}
       - LITESTREAM_BACKUP_PATH=${LITESTREAM_BACKUP_PATH}
       - LITESTREAM_BUCKET=${LITESTREAM_BUCKET}
       - LITESTREAM_COMPRESS=${LITESTREAM_COMPRESS}
       - LITESTREAM_DB_PATH=${LITESTREAM_DB_PATH}
       - LITESTREAM_ENDPOINT=${LITESTREAM_ENDPOINT}
-      - LITESTREAM_MAX_LAG_SECONDS=${LITESTREAM_MAX_LAG_SECONDS}
       - LITESTREAM_MAX_WAL_BYTES=${LITESTREAM_MAX_WAL_BYTES}
       - LITESTREAM_REGION=${LITESTREAM_REGION}
       - LITESTREAM_REPLICA_TYPE=${LITESTREAM_REPLICA_TYPE}
@@ -49,6 +51,8 @@ services:
       - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
       - POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_ENCRYPTION_KEY}
       - PROFILE=docker
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED}
+      - RATE_LIMIT_RULES=${RATE_LIMIT_RULES}
       - S3_ACCESS_KEY=${S3_ACCESS_KEY}
       - S3_BUCKET=${S3_BUCKET}
       - S3_ENABLED=${S3_ENABLED}
@@ -56,6 +60,10 @@ services:
       - S3_REGION=${S3_REGION}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_USE_SSL=${S3_USE_SSL}
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 4096
     restart: unless-stopped
     deploy:
       resources:
@@ -68,9 +76,3 @@ services:
     depends_on:
       rustfs:
         condition: service_healthy
-
-volumes:
-  pb_data:
-    external: true
-  rustfs-data:
-    external: true

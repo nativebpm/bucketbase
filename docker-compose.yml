@@ -8,32 +8,24 @@ services:
     build: .
     ports:
       - "8090:8090"
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     volumes:
-      - pb_data:/pb_data
-      - pb_backup:/pb_backup
+      - $HOME/disks/fs/pb_data:/pb_data
+      - $HOME/disks/fs/pb_backup:/pb_backup
     environment:
-      - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID}
+      - GOMEMLIMIT=${GOMEMLIMIT}
       - LITESTREAM_BACKUP_PATH=${LITESTREAM_BACKUP_PATH}
-      - LITESTREAM_BUCKET=${LITESTREAM_BUCKET}
-      - LITESTREAM_COMPRESS=${LITESTREAM_COMPRESS}
       - LITESTREAM_DB_PATH=${LITESTREAM_DB_PATH}
-      - LITESTREAM_MAX_LAG_SECONDS=${LITESTREAM_MAX_LAG_SECONDS}
-      - LITESTREAM_MAX_WAL_BYTES=${LITESTREAM_MAX_WAL_BYTES}
-      - LITESTREAM_REPLICA_TYPE=${LITESTREAM_REPLICA_TYPE}
-      - LITESTREAM_RETENTION=${LITESTREAM_RETENTION}
-      - LITESTREAM_SNAPSHOT_INTERVAL=${LITESTREAM_SNAPSHOT_INTERVAL}
-      - LITESTREAM_SYNC_INTERVAL=${LITESTREAM_SYNC_INTERVAL}
       - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL}
       - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
       - POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_ENCRYPTION_KEY}
       - PROFILE=docker
-      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
-      - S3_BUCKET=${S3_BUCKET}
-      - S3_ENABLED=${S3_ENABLED}
-      - S3_ENDPOINT=${S3_ENDPOINT}
-      - S3_REGION=${S3_REGION}
-      - S3_SECRET_KEY=${S3_SECRET_KEY}
-      - S3_USE_SSL=${S3_USE_SSL}
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED}
+      - RATE_LIMIT_RULES=${RATE_LIMIT_RULES}
+    ulimits:
+      nofile:
+        soft: 4096
+        hard: 4096
     restart: unless-stopped
     deploy:
       resources:
@@ -43,9 +35,3 @@ services:
         reservations:
           memory: 256M
           cpus: '0.25'
-
-volumes:
-  pb_data:
-    external: true
-  pb_backup:
-    external: true

@@ -40,7 +40,7 @@ func getConfig() Config {
 }
 
 func init() {
-	const markerFile = "/var/lib/garage/.initialized"
+	const markerFile = "/tmp/.initialized"
 
 	config := getConfig()
 
