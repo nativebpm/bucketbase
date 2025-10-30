@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
@@ -124,28 +125,36 @@ func litestreamYaml() (*LitestreamYml, error) {
 	switch replicaType {
 	case "s3":
 		replica = ReplicaConfig{
-			Type:             "s3",
-			Bucket:           os.Getenv("LITESTREAM_BUCKET"),
-			AccessKeyID:      os.Getenv("LITESTREAM_ACCESS_KEY_ID"),
-			SecretAccessKey:  os.Getenv("LITESTREAM_SECRET_ACCESS_KEY"),
-			Region:           os.Getenv("LITESTREAM_REGION"),
-			Endpoint:         os.Getenv("LITESTREAM_ENDPOINT"),
-			SkipVerify:       os.Getenv("LITESTREAM_SKIP_VERIFY") == "true",
-			SyncInterval:     getEnvOrDefault("LITESTREAM_SYNC_INTERVAL", "5m"),
-			SnapshotInterval: getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "6h"),
-			Retention:        getEnvOrDefault("LITESTREAM_RETENTION", "168h"),
-			MaxWALBytes:      getEnvOrDefault("LITESTREAM_MAX_WAL_BYTES", "512MB"),
-			Compress:         getEnvOrDefault("LITESTREAM_COMPRESS", "gzip"),
+			Name:                   replicaType,
+			Type:                   "s3",
+			Bucket:                 os.Getenv("LITESTREAM_BUCKET"),
+			Path:                   os.Getenv("LITESTREAM_PATH"),
+			AccessKeyID:            getEnvOrDefault("LITESTREAM_ACCESS_KEY_ID", os.Getenv("AWS_ACCESS_KEY_ID")),
+			SecretAccessKey:        getEnvOrDefault("LITESTREAM_SECRET_ACCESS_KEY", os.Getenv("AWS_SECRET_ACCESS_KEY")),
+			Region:                 os.Getenv("LITESTREAM_REGION"),
+			Endpoint:               os.Getenv("LITESTREAM_ENDPOINT"),
+			SkipVerify:             os.Getenv("LITESTREAM_SKIP_VERIFY") == "true",
+			ForcePathStyle:         os.Getenv("LITESTREAM_ENDPOINT") != "",
+			SyncInterval:           getEnvOrDefault("LITESTREAM_SYNC_INTERVAL", "1s"),
+			SnapshotInterval:       getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "1s"),
+			Retention:              getEnvOrDefault("LITESTREAM_RETENTION", "24h"),
+			RetentionCheckInterval: getEnvOrDefault("LITESTREAM_RETENTION_CHECK_INTERVAL", "1h"),
+			ValidationInterval:     os.Getenv("LITESTREAM_VALIDATION_INTERVAL"),
+			MaxWALBytes:            getEnvOrDefault("LITESTREAM_MAX_WAL_BYTES", "512MB"),
+			Compress:               getEnvOrDefault("LITESTREAM_COMPRESS", "gzip"),
 		}
 	case "file":
 		replica = ReplicaConfig{
-			Type:             "file",
-			Path:             os.Getenv("LITESTREAM_BACKUP_PATH"),
-			SyncInterval:     getEnvOrDefault("LITESTREAM_SYNC_INTERVAL", "5m"),
-			SnapshotInterval: getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "6h"),
-			Retention:        getEnvOrDefault("LITESTREAM_RETENTION", "168h"),
-			MaxWALBytes:      getEnvOrDefault("LITESTREAM_MAX_WAL_BYTES", "512MB"),
-			Compress:         getEnvOrDefault("LITESTREAM_COMPRESS", "gzip"),
+			Name:                   replicaType,
+			Type:                   "file",
+			Path:                   os.Getenv("LITESTREAM_BACKUP_PATH"),
+			SyncInterval:           getEnvOrDefault("LITESTREAM_SYNC_INTERVAL", "1s"),
+			SnapshotInterval:       getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "1s"),
+			Retention:              getEnvOrDefault("LITESTREAM_RETENTION", "24h"),
+			RetentionCheckInterval: getEnvOrDefault("LITESTREAM_RETENTION_CHECK_INTERVAL", "1h"),
+			ValidationInterval:     os.Getenv("LITESTREAM_VALIDATION_INTERVAL"),
+			MaxWALBytes:            getEnvOrDefault("LITESTREAM_MAX_WAL_BYTES", "512MB"),
+			Compress:               getEnvOrDefault("LITESTREAM_COMPRESS", "gzip"),
 		}
 	default:
 		return nil, fmt.Errorf("unsupported replica type: %s", replicaType)
@@ -155,19 +164,24 @@ func litestreamYaml() (*LitestreamYml, error) {
 		DBPath:      os.Getenv("LITESTREAM_DB_PATH"),
 		ReplicaType: replicaType,
 		Levels: []LevelConfig{
-			{Interval: "5m"},
+			{Interval: "1s"},
+			{Interval: "1m"},
 			{Interval: "1h"},
-			{Interval: "24h"},
 		},
 		Snapshot: SnapshotConfig{
-			Interval:  getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "6h"),
-			Retention: getEnvOrDefault("LITESTREAM_RETENTION", "168h"),
+			Interval:  getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "1s"),
+			Retention: getEnvOrDefault("LITESTREAM_RETENTION", "24h"),
 		},
 		Dbs: []DatabaseConfig{
 			{
-				Path:     os.Getenv("LITESTREAM_DB_PATH"),
-				MetaPath: os.Getenv("LITESTREAM_BACKUP_PATH"),
-				Replica:  replica,
+				Path:                   os.Getenv("LITESTREAM_DB_PATH"),
+				MetaPath:               getEnvOrDefault("LITESTREAM_META_PATH", os.Getenv("LITESTREAM_DB_PATH")+"-litestream"),
+				MonitorInterval:        getEnvOrDefault("LITESTREAM_MONITOR_INTERVAL", "1s"),
+				CheckpointInterval:     getEnvOrDefault("LITESTREAM_CHECKPOINT_INTERVAL", "1m"),
+				BusyTimeout:            getEnvOrDefault("LITESTREAM_BUSY_TIMEOUT", "1s"),
+				MinCheckpointPageCount: getEnvInt("LITESTREAM_MIN_CHECKPOINT_PAGE_COUNT", "1000"),
+				MaxCheckpointPageCount: getEnvInt("LITESTREAM_MAX_CHECKPOINT_PAGE_COUNT", "10000"),
+				Replica:                replica,
 			},
 		},
 	}
@@ -180,6 +194,18 @@ func getEnvOrDefault(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func getEnvInt(key, defaultValue string) int {
+	if value := os.Getenv(key); value != "" {
+		if i, err := strconv.Atoi(value); err == nil {
+			return i
+		}
+	}
+	if i, err := strconv.Atoi(defaultValue); err == nil {
+		return i
+	}
+	return 0
 }
 
 func Config() (*LitestreamYml, error) {
