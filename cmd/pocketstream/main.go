@@ -19,7 +19,7 @@ func databaseRestore() error {
 	if _, err := os.Stat(cfg.DBPath); os.IsNotExist(err) {
 		slog.Info("Database file not found, attempting restore", "path", cfg.DBPath)
 		cmd := exec.Command("/litestream",
-			"restore", "-config", cfg.ConfigPath, "-o", cfg.DBPath, "-if-replica-exists")
+			"restore", "-config", cfg.ConfigPath, "-if-db-not-exists")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if restoreErr := cmd.Run(); restoreErr != nil {
