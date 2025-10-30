@@ -22,8 +22,6 @@ services:
       - PROFILE=docker
       - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED}
       - RATE_LIMIT_RULES=${RATE_LIMIT_RULES}
-      - USER_UID=${USER_UID}
-      - USER_GID=${USER_GID}
     ulimits:
       nofile:
         soft: 4096
