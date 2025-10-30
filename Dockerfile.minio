@@ -14,4 +14,6 @@ USER 1000:1000
 
 HEALTHCHECK --interval=10s --timeout=10s --start-period=5s --retries=9 CMD curl -f http://localhost:9000/minio/health/live || exit 1
 
+EXPOSE 9000 9001
+
 ENTRYPOINT ["/minio"]
