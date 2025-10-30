@@ -39,7 +39,7 @@ func getConfig() Config {
 	}
 }
 
-func init() {
+func main() {
 	const markerFile = "/tmp/.initialized"
 
 	config := getConfig()
@@ -250,9 +250,7 @@ func init() {
 		cmd.Process.Kill()
 		cmd.Wait()
 	}
-}
 
-func main() {
 	err := syscall.Exec("/usr/local/bin/garage", []string{"garage", "server"}, os.Environ())
 	if err != nil {
 		panic(err)

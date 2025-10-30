@@ -44,9 +44,7 @@ func validateEncryptionKey(key string) bool {
 
 func main() {
 	pocketbaseConfig := pocketbase.Config{}
-
 	config := getConfig()
-
 	if config.PocketbaseEncryptionKey != "" {
 		if !validateEncryptionKey(config.PocketbaseEncryptionKey) {
 			slog.Error("POCKETBASE_ENCRYPTION_KEY must be a 32-character hexadecimal string (generated with 'openssl rand -hex 16')")
@@ -54,16 +52,12 @@ func main() {
 		}
 		pocketbaseConfig.DefaultEncryptionEnv = "POCKETBASE_ENCRYPTION_KEY"
 	}
-
 	app := pocketbase.NewWithConfig(pocketbaseConfig)
-
 	s3Config := storage.GetS3Config()
 
 	app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {
 		settings := app.Settings()
-
 		settings.RateLimits.Enabled = config.RateLimitEnabled == "true"
-
 		if settings.RateLimits.Enabled {
 			if config.RateLimitRules != "" {
 				var rules []core.RateLimitRule
@@ -74,13 +68,11 @@ func main() {
 				}
 			}
 		}
-
 		return e.Next()
 	})
 
 	if s3Config.Enabled {
 		storage.MakeBucket()
-
 		app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {
 			settings := app.Settings()
 			settings.S3.Enabled = true
