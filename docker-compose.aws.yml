@@ -8,6 +8,7 @@ services:
     build: .
     ports:
       - "8090:8090"
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     volumes:
       - $HOME/disks/fs/pb_data:/pb_data
       - $HOME/disks/fs/pb_backup:/pb_backup
@@ -58,6 +59,7 @@ services:
       dockerfile: Dockerfile.litestream
     depends_on:
       - pocketbase
+    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     volumes:
       - $HOME/disks/fs/pb_data:/pb_data
       - $HOME/disks/fs/pb_backup:/pb_backup
