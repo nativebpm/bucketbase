@@ -2,17 +2,16 @@ package litestream
 
 import (
 	"fmt"
-	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
 
 type LitestreamYml struct {
-	ReplicaType     string           `yaml:"-"`
-	DBPath          string           `yaml:"-"`
 	ConfigPath      string           `yaml:"-"`
+	DBPath          string           `yaml:"-"`
 	AccessKeyID     string           `yaml:"access-key-id,omitempty"`
 	SecretAccessKey string           `yaml:"secret-access-key,omitempty"`
 	Addr            string           `yaml:"addr,omitempty"`
@@ -124,11 +123,17 @@ func litestreamYaml() (*LitestreamYml, error) {
 	var replica ReplicaConfig
 	switch replicaType {
 	case "s3":
+		url := os.Getenv("LITESTREAM_BUCKET")
+		if !strings.HasPrefix(url, "s3://") {
+			url = "s3://" + url
+		}
+		if !strings.HasSuffix(url, "/") {
+			url += "/"
+		}
 		replica = ReplicaConfig{
 			Name:                   replicaType,
-			Type:                   "s3",
-			Bucket:                 os.Getenv("LITESTREAM_BUCKET"),
-			Path:                   os.Getenv("LITESTREAM_PATH"),
+			Type:                   replicaType,
+			URL:                    url,
 			AccessKeyID:            getEnvOrDefault("LITESTREAM_ACCESS_KEY_ID", os.Getenv("AWS_ACCESS_KEY_ID")),
 			SecretAccessKey:        getEnvOrDefault("LITESTREAM_SECRET_ACCESS_KEY", os.Getenv("AWS_SECRET_ACCESS_KEY")),
 			Region:                 os.Getenv("LITESTREAM_REGION"),
@@ -136,7 +141,7 @@ func litestreamYaml() (*LitestreamYml, error) {
 			SkipVerify:             os.Getenv("LITESTREAM_SKIP_VERIFY") == "true",
 			ForcePathStyle:         os.Getenv("LITESTREAM_ENDPOINT") != "",
 			SyncInterval:           getEnvOrDefault("LITESTREAM_SYNC_INTERVAL", "1s"),
-			SnapshotInterval:       getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "1s"),
+			SnapshotInterval:       os.Getenv("LITESTREAM_SNAPSHOT_INTERVAL"),
 			Retention:              getEnvOrDefault("LITESTREAM_RETENTION", "24h"),
 			RetentionCheckInterval: getEnvOrDefault("LITESTREAM_RETENTION_CHECK_INTERVAL", "1h"),
 			ValidationInterval:     os.Getenv("LITESTREAM_VALIDATION_INTERVAL"),
@@ -146,10 +151,10 @@ func litestreamYaml() (*LitestreamYml, error) {
 	case "file":
 		replica = ReplicaConfig{
 			Name:                   replicaType,
-			Type:                   "file",
+			Type:                   replicaType,
 			Path:                   os.Getenv("LITESTREAM_BACKUP_PATH"),
 			SyncInterval:           getEnvOrDefault("LITESTREAM_SYNC_INTERVAL", "1s"),
-			SnapshotInterval:       getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "1s"),
+			SnapshotInterval:       os.Getenv("LITESTREAM_SNAPSHOT_INTERVAL"),
 			Retention:              getEnvOrDefault("LITESTREAM_RETENTION", "24h"),
 			RetentionCheckInterval: getEnvOrDefault("LITESTREAM_RETENTION_CHECK_INTERVAL", "1h"),
 			ValidationInterval:     os.Getenv("LITESTREAM_VALIDATION_INTERVAL"),
@@ -161,16 +166,19 @@ func litestreamYaml() (*LitestreamYml, error) {
 	}
 
 	config := LitestreamYml{
-		DBPath:      os.Getenv("LITESTREAM_DB_PATH"),
-		ReplicaType: replicaType,
 		Levels: []LevelConfig{
 			{Interval: "1s"},
 			{Interval: "1m"},
 			{Interval: "1h"},
 		},
 		Snapshot: SnapshotConfig{
-			Interval:  getEnvOrDefault("LITESTREAM_SNAPSHOT_INTERVAL", "1s"),
+			Interval:  os.Getenv("LITESTREAM_SNAPSHOT_INTERVAL"),
 			Retention: getEnvOrDefault("LITESTREAM_RETENTION", "24h"),
+		},
+		Logging: LoggingConfig{
+			Level:  getEnvOrDefault("LITESTREAM_LOG_LEVEL", "info"),
+			Type:   getEnvOrDefault("LITESTREAM_LOG_TYPE", "text"),
+			Stderr: os.Getenv("LITESTREAM_LOG_STDERR") == "true",
 		},
 		Dbs: []DatabaseConfig{
 			{
@@ -208,22 +216,24 @@ func getEnvInt(key, defaultValue string) int {
 	return 0
 }
 
+// Config generates and returns the litestream configuration
 func Config() (*LitestreamYml, error) {
 	cfg, err := litestreamYaml()
 	if err != nil {
-		slog.Error("Failed to create litestream config", "error", err)
-		os.Exit(1)
+		return nil, fmt.Errorf("failed to create litestream config: %w", err)
 	}
 	cfg.ConfigPath = "/tmp/litestream.yml"
-	if _, err := os.Stat(cfg.ConfigPath); os.IsNotExist(err) {
-		data, err := yaml.Marshal(cfg)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal litestream config: %w", err)
-		}
+	cfg.DBPath = os.Getenv("LITESTREAM_DB_PATH")
+	if cfg.DBPath == "" {
+		cfg.DBPath = "/pb_data/data.db"
+	}
+	data, err := yaml.Marshal(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal litestream config: %w", err)
+	}
 
-		if err := os.WriteFile(cfg.ConfigPath, data, 0644); err != nil {
-			return nil, fmt.Errorf("failed to create litestream config: %w", err)
-		}
+	if err := os.WriteFile(cfg.ConfigPath, data, 0644); err != nil {
+		return nil, fmt.Errorf("failed to create litestream config: %w", err)
 	}
 	return cfg, nil
 }
