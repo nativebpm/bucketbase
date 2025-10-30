@@ -14,7 +14,7 @@ COPY --from=builder /app/pocketbase /pocketbase
 COPY --from=litestream-builder /usr/local/bin/litestream /litestream
 RUN chmod +x /litestream
 
-USER root
+USER appuser
 
 EXPOSE 8090
 
