@@ -251,7 +251,8 @@ func main() {
 		cmd.Wait()
 	}
 
-	err := syscall.Exec("/usr/local/bin/garage", []string{"garage", "server"}, os.Environ())
+	err := syscall.Exec("/usr/local/bin/garage",
+		[]string{"garage", "server"}, os.Environ())
 	if err != nil {
 		panic(err)
 	}

@@ -2,14 +2,12 @@ package main
 
 import (
 	"encoding/json"
-	"fmt"
 	"log/slog"
 	"os"
 	"os/exec"
 	"regexp"
 	"time"
 
-	"github.com/nativebpm/pocketstream/internal/litestream"
 	"github.com/nativebpm/pocketstream/internal/storage"
 	"github.com/pocketbase/pocketbase"
 	"github.com/pocketbase/pocketbase/core"
@@ -45,27 +43,6 @@ func validateEncryptionKey(key string) bool {
 	return err == nil && matched
 }
 
-func databaseRestore() error {
-	cfg, err := litestream.Config()
-	if err != nil {
-		return fmt.Errorf("failed to generate litestream config: %w", err)
-	}
-
-	if _, err := os.Stat(cfg.DBPath); os.IsNotExist(err) {
-		slog.Info("Database file not found, attempting restore", "path", cfg.DBPath)
-		cmd := exec.Command("/litestream",
-			"restore", "-config", cfg.ConfigPath, "-o", cfg.DBPath, "-if-replica-exists")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if restoreErr := cmd.Run(); restoreErr != nil {
-			return fmt.Errorf("failed to restore database: %w", restoreErr)
-		}
-		slog.Info("Database restored successfully", "path", cfg.DBPath)
-	}
-
-	return nil
-}
-
 func forceCheckpoint() error {
 	// Force WAL checkpoint to ensure schema changes are written to main database file
 	if _, err := os.Stat("/pb_data/data.db"); os.IsNotExist(err) {
@@ -77,12 +54,9 @@ func forceCheckpoint() error {
 }
 
 func main() {
-	if err := databaseRestore(); err != nil {
-		slog.Error("Database restore failed", "error", err)
-	}
-
 	pocketbaseConfig := pocketbase.Config{}
 	config := getConfig()
+
 	if config.PocketbaseEncryptionKey != "" {
 		if !validateEncryptionKey(config.PocketbaseEncryptionKey) {
 			slog.Error("POCKETBASE_ENCRYPTION_KEY must be a 32-character hexadecimal string (generated with 'openssl rand -hex 16')")
@@ -90,8 +64,8 @@ func main() {
 		}
 		pocketbaseConfig.DefaultEncryptionEnv = "POCKETBASE_ENCRYPTION_KEY"
 	}
+
 	app := pocketbase.NewWithConfig(pocketbaseConfig)
-	s3Config := storage.GetS3Config()
 
 	app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {
 		settings := app.Settings()
@@ -109,8 +83,11 @@ func main() {
 		return e.Next()
 	})
 
+	s3Config := storage.GetS3Config()
 	if s3Config.Enabled {
+
 		storage.MakeBucket()
+
 		app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {
 			settings := app.Settings()
 			settings.S3.Enabled = true
@@ -145,7 +122,7 @@ func main() {
 				slog.Warn("Failed to disable wal_autocheckpoint", "error", err)
 			}
 
-			cmd := exec.Command(os.Args[0], "superuser", "upsert", config.PocketbaseAdminEmail, config.PocketbaseAdminPassword)
+			cmd := exec.Command("/pocketbase", "superuser", "upsert", config.PocketbaseAdminEmail, config.PocketbaseAdminPassword)
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
 			if err := cmd.Run(); err != nil {
