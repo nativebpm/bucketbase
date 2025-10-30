@@ -2,6 +2,8 @@ FROM chrislusf/seaweedfs:latest
 
 RUN apk add --no-cache curl
 
+USER 1000:1000
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
   CMD curl -f http://localhost:8333/ || exit 1
 

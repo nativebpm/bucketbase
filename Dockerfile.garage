@@ -20,6 +20,8 @@ COPY garage.toml /etc/garage.toml
 
 WORKDIR /var/lib/garage
 
+USER 1000:1000
+
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=5 \
   CMD /usr/local/bin/garage status || exit 1
 

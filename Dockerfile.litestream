@@ -9,4 +9,6 @@ FROM litestream/litestream:latest
 COPY --from=builder /app/main /main
 RUN chmod +x /main
 
+USER 1000:1000
+
 ENTRYPOINT ["/main"]
