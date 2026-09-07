@@ -21,8 +21,9 @@ default:
   retry: 2
 
 variables:
+  DOCKER_HOST: tcp://docker:2375
   DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: "/certs"
+  DOCKER_TLS_CERTDIR: ""
   DOCKER_BUILDKIT: "1"
   BUILDX_PLATFORM: "linux/amd64"
 
@@ -52,12 +53,12 @@ test:
   image: docker:24.0.5
   services:
     - name: docker:24.0.5-dind
-      command: ["--experimental"]
+      command: ["--tls=false"]
   before_script:
     - echo "Logging in to GitLab Container Registry..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - echo "Setting up Docker Buildx container builder..."
-    - docker buildx create --use --name ps-builder --driver docker-container 2>/dev/null || docker buildx use ps-builder
+    - docker buildx create --driver docker-container --name ps-builder --use
     - docker buildx inspect --bootstrap
   after_script:
     - docker buildx prune -f --keep-storage=0 2>/dev/null || true
