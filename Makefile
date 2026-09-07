@@ -119,3 +119,10 @@ up-aws: setup-pocketbase
 down-aws:
 	docker compose -f docker-compose.aws.yml down -v
 	make clean-pocketbase
+
+up-gdrive: setup-pocketbase
+	USER_UID=$(shell id -u) USER_GID=$(shell id -g) docker compose --env-file .env.gdrive -f docker-compose.gdrive.yml up --build -d
+
+down-gdrive:
+	docker compose -f docker-compose.gdrive.yml down -v
+	make clean-pocketbase

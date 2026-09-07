@@ -1,0 +1,94 @@
+name: pocketstream-gdrive
+
+services:
+  rclone:
+    image: rclone/rclone:latest
+    command: >
+      serve s3
+      --addr 0.0.0.0:8334
+      gdrive:${GDRIVE_REMOTE_PATH:-pocketstream}
+      --auth-key ${S3_ACCESS_KEY},${S3_SECRET_KEY}
+      --config /config/rclone.conf
+      --tpslimit 8
+      --tpslimit-burst 2
+      --drive-pacer-min-sleep 100ms
+      --drive-chunk-size 64M
+      --drive-upload-cutoff 32M
+      --dir-cache-time 1h
+      --vfs-cache-mode writes
+      --vfs-cache-max-age 1h
+    ports:
+      - "8334:8334"
+    volumes:
+      - /tmp/pocketstream-gdrive/rclone.conf:/config/rclone.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 8334 || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  pocketbase:
+    image: pocketstream-test:pb
+    ports:
+      - "8090:8090"
+    volumes:
+      - /tmp/pocketstream-gdrive/pb_data:/pb_data
+      - /tmp/pocketstream-gdrive/pb_backup:/pb_backup
+    environment:
+      - GOMEMLIMIT=${GOMEMLIMIT}
+      - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID}
+      - LITESTREAM_BACKUP_PATH=${LITESTREAM_BACKUP_PATH}
+      - LITESTREAM_BUCKET=${LITESTREAM_BUCKET}
+      - LITESTREAM_DB_PATH=${LITESTREAM_DB_PATH}
+      - LITESTREAM_ENDPOINT=${LITESTREAM_ENDPOINT}
+      - LITESTREAM_REGION=${LITESTREAM_REGION}
+      - LITESTREAM_REPLICA_TYPE=${LITESTREAM_REPLICA_TYPE}
+      - LITESTREAM_SECRET_ACCESS_KEY=${LITESTREAM_SECRET_ACCESS_KEY}
+      - LITESTREAM_SKIP_VERIFY=${LITESTREAM_SKIP_VERIFY}
+      - LITESTREAM_SYNC_INTERVAL=${LITESTREAM_SYNC_INTERVAL}
+      - POCKETBASE_ADMIN_EMAIL=${POCKETBASE_ADMIN_EMAIL}
+      - POCKETBASE_ADMIN_PASSWORD=${POCKETBASE_ADMIN_PASSWORD}
+      - POCKETBASE_ENCRYPTION_KEY=${POCKETBASE_ENCRYPTION_KEY}
+      - PROFILE=docker
+      - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED}
+      - RATE_LIMIT_RULES=${RATE_LIMIT_RULES}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_BUCKET=${S3_BUCKET}
+      - S3_ENABLED=${S3_ENABLED}
+      - S3_ENDPOINT=${S3_ENDPOINT}
+      - S3_REGION=${S3_REGION}
+      - S3_SECRET_KEY=${S3_SECRET_KEY}
+      - S3_USE_SSL=${S3_USE_SSL}
+    restart: unless-stopped
+    depends_on:
+      rclone:
+        condition: service_healthy
+
+  litestream:
+    image: pocketstream-test:litestream
+    depends_on:
+      - pocketbase
+      - rclone
+    volumes:
+      - /tmp/pocketstream-gdrive/pb_data:/pb_data
+      - /tmp/pocketstream-gdrive/pb_backup:/pb_backup
+    environment:
+      - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID}
+      - LITESTREAM_SECRET_ACCESS_KEY=${LITESTREAM_SECRET_ACCESS_KEY}
+      - LITESTREAM_BUCKET=${LITESTREAM_BUCKET}
+      - LITESTREAM_REGION=${LITESTREAM_REGION}
+      - LITESTREAM_ENDPOINT=${LITESTREAM_ENDPOINT}
+      - LITESTREAM_SKIP_VERIFY=${LITESTREAM_SKIP_VERIFY}
+      - LITESTREAM_REPLICA_TYPE=${LITESTREAM_REPLICA_TYPE}
+      - LITESTREAM_DB_PATH=${LITESTREAM_DB_PATH}
+      - LITESTREAM_BACKUP_PATH=${LITESTREAM_BACKUP_PATH}
+      - LITESTREAM_SYNC_INTERVAL=${LITESTREAM_SYNC_INTERVAL:-2s}
+      - LITESTREAM_RETENTION=${LITESTREAM_RETENTION:-24h}
+      - LITESTREAM_RETENTION_CHECK_INTERVAL=${LITESTREAM_RETENTION_CHECK_INTERVAL:-1h}
+      - LITESTREAM_MONITOR_INTERVAL=${LITESTREAM_MONITOR_INTERVAL:-1s}
+      - LITESTREAM_CHECKPOINT_INTERVAL=${LITESTREAM_CHECKPOINT_INTERVAL:-1m}
+      - LITESTREAM_BUSY_TIMEOUT=${LITESTREAM_BUSY_TIMEOUT:-5s}
+      - LITESTREAM_COMPRESS=${LITESTREAM_COMPRESS:-gzip}
+    restart: unless-stopped

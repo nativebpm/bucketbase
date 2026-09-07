@@ -24,6 +24,7 @@ File storage with SQLite metadata, PocketBase API, S3/local storage, and instant
 | SeaweedFS  | Distributed S3 |
 | rclone     | Local S3       |
 | AWS S3     | Cloud          |
+| Google Drive | Cloud S3     |
 
 
 ## Useful Links

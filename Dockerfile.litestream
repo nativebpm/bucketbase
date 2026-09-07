@@ -5,9 +5,10 @@ COPY . .
 RUN go mod tidy
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/litestream
 
-FROM litestream/litestream:latest
-COPY --from=builder /app/main /main
-RUN chmod +x /main
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates curl
+COPY --from=litestream/litestream:latest /usr/local/bin/litestream /usr/local/bin/litestream
+COPY --chmod=755 --from=builder /app/main /main
 
 USER 1000:1000
 
