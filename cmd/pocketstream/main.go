@@ -55,7 +55,7 @@ func databaseRestore() error {
 		if err := os.MkdirAll(filepath.Dir(cfg.DBPath), 0755); err != nil {
 			return fmt.Errorf("failed to create directory for database: %w", err)
 		}
-		
+
 		bin := findLitestreamBin()
 		slog.Info("Database file not found, attempting restore", "path", cfg.DBPath, "litestream", bin)
 		cmd := exec.Command(bin, "restore", "-config", cfg.ConfigPath, cfg.DBPath)

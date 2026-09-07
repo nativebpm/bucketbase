@@ -24,32 +24,36 @@ func New() *pocketbase.PocketBase {
 
 	app := pocketbase.NewWithConfig(pocketbaseConfig)
 
-	// Bootstrap hooks
+	// Bootstrap hook: run default bootstrap first (DB init, migration, settings reload),
+	// then apply and persist environment-configured overrides (S3, RateLimits).
 	app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {
+		if err := e.Next(); err != nil {
+			return err
+		}
+
 		settings := app.Settings()
-		settings.RateLimits.Enabled = config.RateLimitEnabled == "true"
-		if settings.RateLimits.Enabled {
+		var needsSave bool
+
+		if config.RateLimitEnabled == "true" {
+			settings.RateLimits.Enabled = true
 			if config.RateLimitRules != "" {
 				var rules []core.RateLimitRule
-				if err := json.Unmarshal([]byte(config.RateLimitRules), &rules); err != nil {
-					slog.Warn("Failed to parse RATE_LIMIT_RULES, using defaults", "error", err)
-				} else {
+				if err := json.Unmarshal([]byte(config.RateLimitRules), &rules); err == nil {
 					settings.RateLimits.Rules = rules
+				} else {
+					slog.Warn("Failed to parse RATE_LIMIT_RULES, using defaults", "error", err)
 				}
 			}
+			needsSave = true
 		}
-		return e.Next()
-	})
 
-	s3Config := storage.GetS3Config()
-	if s3Config.Enabled {
-		app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {
+		s3Config := storage.GetS3Config()
+		if s3Config.Enabled {
 			if err := storage.MakeBucket(); err != nil {
 				slog.Error("Failed to initialize S3 storage buckets", "error", err)
 				return err
 			}
 
-			settings := app.Settings()
 			settings.S3.Enabled = true
 			settings.S3.Bucket = s3Config.Bucket
 			settings.S3.Region = s3Config.Region
@@ -62,9 +66,19 @@ func New() *pocketbase.PocketBase {
 			}
 			settings.S3.AccessKey = s3Config.AccessKeyID
 			settings.S3.Secret = s3Config.SecretAccessKey
-			return e.Next()
-		})
-	}
+			needsSave = true
+		}
+
+		if needsSave {
+			if err := app.Save(settings); err != nil {
+				slog.Error("Failed to persist bootstrap settings", "error", err)
+				return err
+			}
+			slog.Info("Successfully applied and persisted bootstrap settings", "s3_enabled", s3Config.Enabled)
+		}
+
+		return nil
+	})
 
 	return app
 }

@@ -11,4 +11,3 @@ func ValidateEncryptionKey(key string) bool {
 	matched, err := regexp.MatchString(`^[0-9a-fA-F]{32}$`, key)
 	return err == nil && matched
 }
-

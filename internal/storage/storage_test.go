@@ -105,39 +105,39 @@ func TestGetS3Config_EndpointNormalization(t *testing.T) {
 
 func TestGetS3Config_BucketSanitizationAndDeduplication(t *testing.T) {
 	tests := []struct {
-		name            string
-		s3Bucket        string
+		name             string
+		s3Bucket         string
 		litestreamBucket string
-		expectedBucket  string
-		expectedBuckets []string
+		expectedBucket   string
+		expectedBuckets  []string
 	}{
 		{
 			name:             "normal distinct buckets",
 			s3Bucket:         "app-storage",
 			litestreamBucket: "db-backups",
 			expectedBucket:   "app-storage",
-			expectedBuckets: []string{"app-storage", "db-backups"},
+			expectedBuckets:  []string{"app-storage", "db-backups"},
 		},
 		{
 			name:             "buckets with s3 prefix and trailing slashes",
 			s3Bucket:         "s3://app-storage/",
 			litestreamBucket: "s3://db-backups/",
 			expectedBucket:   "app-storage",
-			expectedBuckets: []string{"app-storage", "db-backups"},
+			expectedBuckets:  []string{"app-storage", "db-backups"},
 		},
 		{
 			name:             "identical buckets should be deduplicated",
 			s3Bucket:         "shared-bucket",
 			litestreamBucket: "shared-bucket",
 			expectedBucket:   "shared-bucket",
-			expectedBuckets: []string{"shared-bucket"},
+			expectedBuckets:  []string{"shared-bucket"},
 		},
 		{
 			name:             "empty litestream bucket should not produce empty entry",
 			s3Bucket:         "app-storage",
 			litestreamBucket: "",
 			expectedBucket:   "app-storage",
-			expectedBuckets: []string{"app-storage"},
+			expectedBuckets:  []string{"app-storage"},
 		},
 	}
 
