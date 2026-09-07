@@ -121,6 +121,8 @@ func litestreamYaml() (*LitestreamYml, error) {
 		replicaType = "file"
 	}
 	var replica ReplicaConfig
+	dbPath := getEnvOrDefault("LITESTREAM_DB_PATH", "/pb_data/data.db")
+
 	switch replicaType {
 	case "s3":
 		url := os.Getenv("LITESTREAM_BUCKET")
@@ -152,7 +154,7 @@ func litestreamYaml() (*LitestreamYml, error) {
 		replica = ReplicaConfig{
 			Name:                   replicaType,
 			Type:                   replicaType,
-			Path:                   os.Getenv("LITESTREAM_BACKUP_PATH"),
+			Path:                   getEnvOrDefault("LITESTREAM_BACKUP_PATH", "/pb_backup"),
 			SyncInterval:           getEnvOrDefault("LITESTREAM_SYNC_INTERVAL", "1s"),
 			SnapshotInterval:       os.Getenv("LITESTREAM_SNAPSHOT_INTERVAL"),
 			Retention:              getEnvOrDefault("LITESTREAM_RETENTION", "24h"),
@@ -182,8 +184,8 @@ func litestreamYaml() (*LitestreamYml, error) {
 		},
 		Dbs: []DatabaseConfig{
 			{
-				Path:                   os.Getenv("LITESTREAM_DB_PATH"),
-				MetaPath:               getEnvOrDefault("LITESTREAM_META_PATH", os.Getenv("LITESTREAM_DB_PATH")+"-litestream"),
+				Path:                   dbPath,
+				MetaPath:               getEnvOrDefault("LITESTREAM_META_PATH", dbPath+"-litestream"),
 				MonitorInterval:        getEnvOrDefault("LITESTREAM_MONITOR_INTERVAL", "1s"),
 				CheckpointInterval:     getEnvOrDefault("LITESTREAM_CHECKPOINT_INTERVAL", "1m"),
 				BusyTimeout:            getEnvOrDefault("LITESTREAM_BUSY_TIMEOUT", "1s"),
@@ -223,10 +225,7 @@ func Config() (*LitestreamYml, error) {
 		return nil, fmt.Errorf("failed to create litestream config: %w", err)
 	}
 	cfg.ConfigPath = "/tmp/litestream.yml"
-	cfg.DBPath = os.Getenv("LITESTREAM_DB_PATH")
-	if cfg.DBPath == "" {
-		cfg.DBPath = "/pb_data/data.db"
-	}
+	cfg.DBPath = cfg.Dbs[0].Path
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal litestream config: %w", err)
