@@ -1,6 +1,6 @@
 FROM litestream/litestream:latest AS litestream-builder
 
-FROM golang:1.24-alpine AS builder
+FROM golang:1.27-alpine AS builder
 RUN apk add --no-cache git ca-certificates build-base
 WORKDIR /app
 COPY . .

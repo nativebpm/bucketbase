@@ -39,7 +39,7 @@ File storage with SQLite metadata, PocketBase API, S3/local storage, and instant
 
 - Docker
 - Make
-- Go 1.24+ (for building from source)
+- Go 1.27+ (for building from source)
 
 ## Setup
 
