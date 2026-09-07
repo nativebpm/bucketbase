@@ -43,17 +43,25 @@ func New() *pocketbase.PocketBase {
 
 	s3Config := storage.GetS3Config()
 	if s3Config.Enabled {
-		storage.MakeBucket()
-
 		app.OnBootstrap().BindFunc(func(e *core.BootstrapEvent) error {
+			if err := storage.MakeBucket(); err != nil {
+				slog.Error("Failed to initialize S3 storage buckets", "error", err)
+				return err
+			}
+
 			settings := app.Settings()
 			settings.S3.Enabled = true
 			settings.S3.Bucket = s3Config.Bucket
 			settings.S3.Region = s3Config.Region
-			settings.S3.Endpoint = s3Config.Endpoint.String()
+			if s3Config.Endpoint != nil && s3Config.Endpoint.Host != "" {
+				settings.S3.Endpoint = s3Config.Endpoint.String()
+				settings.S3.ForcePathStyle = true
+			} else {
+				settings.S3.Endpoint = ""
+				settings.S3.ForcePathStyle = false
+			}
 			settings.S3.AccessKey = s3Config.AccessKeyID
 			settings.S3.Secret = s3Config.SecretAccessKey
-			settings.S3.ForcePathStyle = true
 			return e.Next()
 		})
 	}
