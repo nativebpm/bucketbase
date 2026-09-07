@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/url"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -25,17 +26,19 @@ type S3Config struct {
 
 func GetS3Config() S3Config {
 	s3Endpoint, err := url.Parse(os.Getenv("S3_ENDPOINT"))
-	if err != nil {
+	if err != nil && os.Getenv("S3_ENABLED") == "true" {
 		slog.Error("Failed to parse S3 endpoint", "error", err)
 		os.Exit(1)
 	}
 
 	useSSL := os.Getenv("S3_USE_SSL") == "true"
 
-	if useSSL {
-		s3Endpoint.Scheme = "https"
-	} else {
-		s3Endpoint.Scheme = "http"
+	if s3Endpoint != nil {
+		if useSSL {
+			s3Endpoint.Scheme = "https"
+		} else {
+			s3Endpoint.Scheme = "http"
+		}
 	}
 
 	region := os.Getenv("S3_REGION")
@@ -61,6 +64,10 @@ func GetS3Config() S3Config {
 func MakeBucket() {
 	cfg := GetS3Config()
 
+	if !cfg.Enabled {
+		return
+	}
+
 	ctx := context.Background()
 
 	awsCfg, err := config.LoadDefaultConfig(ctx,
@@ -78,22 +85,32 @@ func MakeBucket() {
 	})
 
 	for _, bucketName := range cfg.Buckets {
-		_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{
-			Bucket: &bucketName,
-		})
-		if err != nil {
-			_, errHead := client.HeadBucket(ctx, &s3.HeadBucketInput{
+		var success bool
+		for i := 0; i < 15; i++ {
+			_, err = client.CreateBucket(ctx, &s3.CreateBucketInput{
 				Bucket: &bucketName,
 			})
-			if errHead == nil {
-				slog.Info("Bucket already exists", "bucket", bucketName)
+			if err != nil {
+				_, errHead := client.HeadBucket(ctx, &s3.HeadBucketInput{
+					Bucket: &bucketName,
+				})
+				if errHead == nil {
+					slog.Info("Bucket already exists", "bucket", bucketName)
+					success = true
+					break
+				} else {
+					slog.Warn("Failed to create bucket, retrying...", "bucket", bucketName, "error", err, "attempt", i+1)
+					time.Sleep(2 * time.Second)
+				}
 			} else {
-				slog.Error("Failed to create bucket", "bucket", bucketName, "error", err)
-				os.Exit(1)
+				slog.Info("Bucket created successfully", "bucket", bucketName)
+				success = true
+				break
 			}
-		} else {
-			slog.Info("Bucket created successfully", "bucket", bucketName)
+		}
+		if !success {
+			slog.Error("Failed to create bucket after retries", "bucket", bucketName)
+			os.Exit(1)
 		}
 	}
-
 }

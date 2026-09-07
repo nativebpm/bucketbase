@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"syscall"
 
 	"github.com/nativebpm/pocketstream/internal/litestream"
@@ -17,6 +18,10 @@ func databaseRestore() error {
 	}
 
 	if _, err := os.Stat(cfg.DBPath); os.IsNotExist(err) {
+		if err := os.MkdirAll(filepath.Dir(cfg.DBPath), 0755); err != nil {
+			return fmt.Errorf("failed to create directory for database: %w", err)
+		}
+		
 		slog.Info("Database file not found, attempting restore", "path", cfg.DBPath)
 		cmd := exec.Command("/litestream", "restore", "-config", cfg.ConfigPath, cfg.DBPath)
 		cmd.Stdout = os.Stdout
