@@ -16,6 +16,8 @@ COPY --from=builder /app/main /main
 RUN chmod +x /litestream
 RUN chmod +x /pocketbase
 
+RUN mkdir -p /pb_data /pb_backup && chown -R 1000:1000 /pb_data /pb_backup
+
 USER 1000:1000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
