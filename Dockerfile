@@ -1,20 +1,21 @@
 FROM litestream/litestream:latest AS litestream-builder
 
-FROM golang:1.27-alpine AS builder
-RUN apk add --no-cache git ca-certificates build-base
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
-RUN go mod tidy
-RUN CGO_ENABLED=1 GOOS=linux go build -a -installsuffix cgo -o pocketbase ./cmd/pocketbase
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/pocketstream
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-s -w" -o pocketbase ./cmd/pocketbase
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-s -w" -o main ./cmd/pocketstream
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates curl sqlite
 COPY --from=litestream-builder /usr/local/bin/litestream /litestream
 COPY --from=builder /app/pocketbase /pocketbase
 COPY --from=builder /app/main /main
-RUN chmod +x /litestream
-RUN chmod +x /pocketbase
+RUN chmod +x /litestream /pocketbase
 
 RUN mkdir -p /pb_data /pb_backup && chown -R 1000:1000 /pb_data /pb_backup
 

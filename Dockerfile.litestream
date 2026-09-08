@@ -1,9 +1,11 @@
-FROM golang:1.27-alpine AS builder
-RUN apk add --no-cache git ca-certificates build-base
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
+ARG TARGETOS
+ARG TARGETARCH
 WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
 COPY . .
-RUN go mod tidy
-RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main ./cmd/litestream
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-s -w" -o main ./cmd/litestream
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates curl
