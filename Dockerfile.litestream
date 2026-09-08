@@ -1,3 +1,5 @@
+FROM litestream/litestream:latest AS litestream-bin
+
 FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
@@ -9,7 +11,7 @@ RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -ldflags="-s -w" -o
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates curl
-COPY --from=litestream/litestream:latest /usr/local/bin/litestream /usr/local/bin/litestream
+COPY --from=litestream-bin /usr/local/bin/litestream /usr/local/bin/litestream
 COPY --chmod=755 --from=builder /app/main /main
 
 RUN mkdir -p /pb_data /pb_backup && chown -R 1000:1000 /pb_data /pb_backup

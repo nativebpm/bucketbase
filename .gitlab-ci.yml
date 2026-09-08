@@ -84,6 +84,7 @@ build:pocketstream:
       echo "Building PocketStream image with tags: ${TARGET_TAGS}"
       docker buildx build \
         --platform "${BUILDX_PLATFORM}" \
+        --provenance=false \
         --builder ps-builder \
         --cache-to=type=registry,ref="${CI_REGISTRY_IMAGE}:cache",mode=max \
         --cache-from=type=registry,ref="${CI_REGISTRY_IMAGE}:cache" \
@@ -114,6 +115,7 @@ build:litestream:
       echo "Building Litestream companion image with tags: ${TARGET_TAGS}"
       docker buildx build \
         --platform "${BUILDX_PLATFORM}" \
+        --provenance=false \
         --builder ps-builder \
         -f Dockerfile.litestream \
         --cache-to=type=registry,ref="${LITESTREAM_IMAGE}:cache",mode=max \
