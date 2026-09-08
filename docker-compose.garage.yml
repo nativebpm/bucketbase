@@ -1,5 +1,4 @@
-# make setup-garage
-# docker compose --env-file .env.garage -f docker-compose.garage.yml up --build -d
+# docker compose --env-file .env.garage -f docker-compose.garage.yml up -d
 
 name: pocketstream-garage
 
@@ -13,10 +12,9 @@ services:
       - "3901:3901"
       - "3902:3902"
       - "3903:3903"
-    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     volumes:
-      - $HOME/disks/garage/data:/var/lib/garage/data
-      - $HOME/disks/garage/meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+      - garage_meta:/var/lib/garage/meta
       - ./garage.toml:/etc/garage.toml:ro
     environment:
       - GARAGE_ACCESS_KEY=${GARAGE_ACCESS_KEY}
@@ -33,12 +31,13 @@ services:
     restart: unless-stopped
 
   pocketbase:
+    image: ${POCKETBASE_IMAGE:-registry.gitlab.com/nativebpm/pocketstream:latest}
     build: .
     ports:
       - "8090:8090"
     volumes:
-      - $HOME/disks/fs/pb_data:/pb_data
-      - $HOME/disks/fs/pb_backup:/pb_backup
+      - pb_data:/pb_data
+      - pb_backup:/pb_backup
     environment:
       - GOMEMLIMIT=${GOMEMLIMIT}
       - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID}
@@ -63,6 +62,12 @@ services:
       - S3_REGION=${S3_REGION}
       - S3_SECRET_KEY=${S3_SECRET_KEY}
       - S3_USE_SSL=${S3_USE_SSL}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8090/api/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     ulimits:
       nofile:
         soft: 4096
@@ -81,16 +86,18 @@ services:
         condition: service_healthy
 
   litestream:
+    image: ${LITESTREAM_IMAGE:-registry.gitlab.com/nativebpm/pocketstream/litestream:latest}
     build:
       context: .
       dockerfile: Dockerfile.litestream
     depends_on:
-      - pocketbase
-      - garage
-    user: "${USER_UID:-1000}:${USER_GID:-1000}"
+      pocketbase:
+        condition: service_healthy
+      garage:
+        condition: service_healthy
     volumes:
-      - $HOME/disks/fs/pb_data:/pb_data
-      - $HOME/disks/fs/pb_backup:/pb_backup
+      - pb_data:/pb_data
+      - pb_backup:/pb_backup
     environment:
       - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID}
       - LITESTREAM_SECRET_ACCESS_KEY=${LITESTREAM_SECRET_ACCESS_KEY}
@@ -115,3 +122,14 @@ services:
       - LITESTREAM_LOG_TYPE=${LITESTREAM_LOG_TYPE:-text}
       - LITESTREAM_LOG_STDERR=${LITESTREAM_LOG_STDERR:-false}
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+volumes:
+  garage_data:
+  garage_meta:
+  pb_data:
+  pb_backup:

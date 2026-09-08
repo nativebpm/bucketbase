@@ -25,7 +25,7 @@ variables:
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
   DOCKER_BUILDKIT: "1"
-  BUILDX_PLATFORM: "linux/amd64"
+  BUILDX_PLATFORM: "linux/amd64,linux/arm64"
 
 stages:
   - test
@@ -57,6 +57,8 @@ test:
   before_script:
     - echo "Logging in to GitLab Container Registry..."
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - echo "Registering binfmt for multi-arch emulation..."
+    - docker run --privileged --rm tonistiigi/binfmt --install all
     - echo "Setting up Docker Buildx container builder..."
     - docker buildx create --driver docker-container --name ps-builder --use
     - docker buildx inspect --bootstrap

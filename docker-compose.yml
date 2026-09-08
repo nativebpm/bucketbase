@@ -1,17 +1,16 @@
-# make setup-fs
-# docker compose --env-file .env -f docker-compose.yml up --build -d
+# docker compose --env-file .env -f docker-compose.yml up -d
 
 name: pocketstream-fs
 
 services:
   pocketbase:
+    image: ${POCKETBASE_IMAGE:-registry.gitlab.com/nativebpm/pocketstream:latest}
     build: .
     ports:
       - "8090:8090"
-    user: "${USER_UID:-1000}:${USER_GID:-1000}"
     volumes:
-      - $HOME/disks/fs/pb_data:/pb_data
-      - $HOME/disks/fs/pb_backup:/pb_backup
+      - pb_data:/pb_data
+      - pb_backup:/pb_backup
     environment:
       - GOMEMLIMIT=${GOMEMLIMIT}
       - LITESTREAM_BACKUP_PATH=${LITESTREAM_BACKUP_PATH}
@@ -23,6 +22,12 @@ services:
       - PROFILE=docker
       - RATE_LIMIT_ENABLED=${RATE_LIMIT_ENABLED}
       - RATE_LIMIT_RULES=${RATE_LIMIT_RULES}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://127.0.0.1:8090/api/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     ulimits:
       nofile:
         soft: 4096
@@ -36,16 +41,18 @@ services:
         reservations:
           memory: 256M
           cpus: '0.25'
+
   litestream:
+    image: ${LITESTREAM_IMAGE:-registry.gitlab.com/nativebpm/pocketstream/litestream:latest}
     build:
       context: .
       dockerfile: Dockerfile.litestream
     depends_on:
-      - pocketbase
-    user: "${USER_UID:-1000}:${USER_GID:-1000}"
+      pocketbase:
+        condition: service_healthy
     volumes:
-      - $HOME/disks/fs/pb_data:/pb_data
-      - $HOME/disks/fs/pb_backup:/pb_backup
+      - pb_data:/pb_data
+      - pb_backup:/pb_backup
     environment:
       - LITESTREAM_ACCESS_KEY_ID=${LITESTREAM_ACCESS_KEY_ID}
       - LITESTREAM_SECRET_ACCESS_KEY=${LITESTREAM_SECRET_ACCESS_KEY}
@@ -70,3 +77,12 @@ services:
       - LITESTREAM_LOG_TYPE=${LITESTREAM_LOG_TYPE:-text}
       - LITESTREAM_LOG_STDERR=${LITESTREAM_LOG_STDERR:-false}
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+
+volumes:
+  pb_data:
+  pb_backup:
